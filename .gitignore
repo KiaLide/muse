@@ -1,48 +1,38 @@
-# Python
+﻿# Python
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
-.Python
 *.egg-info/
 dist/
 build/
-.eggs/
-*.egg
 
 # Virtual environments
 venv/
 env/
 .venv/
-.env/
 
 # Database (personal data — do not commit)
 muse.db
 
-# Audio cache (temporary files, no need to commit)
+# Downloaded audio cache
 audio_cache/
 rec_temp/
-*.mp3
-*.wav
-*.flac
-*.m4a
-*.ogg
-*.webm
-*.opus
 
-# ffmpeg local folder (large binary)
+# Local ffmpeg binary
 ffmpeg/
 
-# OS
-.DS_Store
+# Temp / OS
+*.tmp
+*.log
 Thumbs.db
+.DS_Store
 desktop.ini
 
-# IDE
+# IDE / Claude
+.claude/
 .vscode/
 .idea/
-*.sublime-project
-*.sublime-workspace
 
-# Logs
-*.log
+# Misc
+]
