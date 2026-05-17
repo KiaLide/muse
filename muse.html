@@ -1,0 +1,2406 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Muse · 音樂品味分析</title>
+<style>
+:root{
+  --bg:#0b0b18;--bg-card:#13132a;--bg-hover:#1a1a36;--bg-input:#0f0f22;
+  --border:#252545;--border-b:#3d3d6e;
+  --accent:#7c3aed;--accent-glow:rgba(124,58,237,.3);
+  --a2:#06b6d4;--a2-glow:rgba(6,182,212,.22);
+  --text:#e2e8f0;--muted:#7c8ba0;--dim:#4a5568;
+  --ok:#10b981;--warn:#f59e0b;--err:#ef4444;
+  --r:14px;--rs:9px;--rx:6px;--tr:all .18s ease;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:var(--border-b);border-radius:3px}
+a{color:inherit;text-decoration:none}
+input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px;cursor:pointer}
+
+/* layout */
+#app{display:flex;flex-direction:column;min-height:100vh}
+header{position:sticky;top:0;z-index:100;background:rgba(11,11,24,.92);
+  backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 20px}
+.hdr{display:flex;align-items:center;gap:20px;max-width:1060px;margin:0 auto;height:56px}
+.logo{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:700;
+  letter-spacing:-.3px;color:#fff;white-space:nowrap}
+nav.tabs{display:flex;gap:2px;flex:1;overflow-x:auto}
+.tab{position:relative;padding:8px 13px;border:none;background:transparent;
+  color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;
+  border-radius:var(--rx);transition:var(--tr);white-space:nowrap}
+.tab:hover{color:var(--text);background:var(--bg-hover)}
+.tab.active{color:#fff;background:var(--bg-hover)}
+.tab.active::after{content:'';position:absolute;bottom:-1px;left:50%;
+  transform:translateX(-50%);width:28px;height:2px;
+  background:var(--accent);border-radius:2px}
+.badge{display:inline-flex;align-items:center;justify-content:center;
+  min-width:18px;height:18px;padding:0 5px;background:var(--accent);
+  color:#fff;font-size:10px;font-weight:700;border-radius:9px;margin-left:4px}
+main{flex:1;overflow-y:auto}
+.tab-content{display:none;padding:26px 20px 60px}
+.tab-content.active{display:block}
+.wrap{max-width:860px;margin:0 auto}
+h2{font-size:19px;font-weight:700;margin-bottom:20px;letter-spacing:-.3px}
+/* profile picker (header) */
+.profile-picker{position:relative;flex-shrink:0}
+.profile-pick-btn{display:flex;align-items:center;gap:6px;padding:6px 11px;
+  border:1px solid var(--border);border-radius:8px;background:var(--bg-card);
+  color:var(--text);font-size:12px;font-weight:600;cursor:pointer;
+  white-space:nowrap;transition:var(--tr)}
+.profile-pick-btn:hover{border-color:var(--border-b);background:var(--bg-hover)}
+.profile-pick-btn svg{color:var(--muted);transition:var(--tr);flex-shrink:0}
+.profile-pick-btn.open{border-color:var(--accent);color:var(--accent)}
+.profile-pick-btn.open svg{color:var(--accent);transform:rotate(180deg)}
+.profile-menu{position:absolute;right:0;top:calc(100% + 8px);min-width:170px;
+  background:var(--bg-card);border:1px solid var(--border);border-radius:10px;
+  box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:300;padding:6px;
+  animation:fadeIn .12s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.pmi{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;
+  cursor:pointer;font-size:13px;color:var(--text);transition:var(--tr);
+  border:none;background:transparent;width:100%;text-align:left}
+.pmi:hover{background:var(--bg-hover)}
+.pmi.active{color:var(--accent);font-weight:600}
+.pmi-dot{width:7px;height:7px;border-radius:50%;background:var(--border-b);flex-shrink:0;transition:var(--tr)}
+.pmi.active .pmi-dot{background:var(--accent);box-shadow:0 0 0 3px rgba(124,58,237,.25)}
+.pmi-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pmi-rename-input{flex:1;background:transparent;border:none;border-bottom:1px solid var(--accent);
+  color:var(--accent);font-size:13px;font-weight:600;outline:none;padding:0;min-width:0}
+.profile-menu-div{height:1px;background:var(--border);margin:4px 0}
+.pmi-hint{font-size:10px;color:var(--muted);padding:4px 10px 2px;text-align:center}
+h3{font-size:14px;font-weight:600;margin-bottom:12px}
+
+/* inputs / buttons */
+.url-grp{display:flex;gap:8px;margin-bottom:16px}
+.ui{flex:1;padding:10px 14px;background:var(--bg-input);border:1px solid var(--border);
+  border-radius:var(--rs);color:var(--text);font-size:14px;outline:none;transition:var(--tr)}
+.ui:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.ui::placeholder{color:var(--dim)}
+.btn{padding:10px 17px;border:none;border-radius:var(--rs);font-size:13px;
+  font-weight:600;cursor:pointer;transition:var(--tr);white-space:nowrap;display:inline-flex;
+  align-items:center;gap:6px}
+.btn-p{background:var(--accent);color:#fff}
+.btn-p:hover{background:#6d28d9;box-shadow:0 4px 14px var(--accent-glow)}
+.btn-p:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+.btn-g{background:var(--bg-hover);color:var(--text);border:1px solid var(--border)}
+.btn-g:hover{border-color:var(--border-b)}
+.btn-g:disabled{opacity:.45;cursor:not-allowed}
+.btn-sm{padding:7px 13px;font-size:12px}
+.btn-xs{padding:5px 10px;font-size:11.5px;border-radius:5px}
+
+/* cards */
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r)}
+.divider{height:1px;background:var(--border);margin:24px 0}
+
+/* source type tabs */
+.src-tabs{display:flex;gap:3px;margin-bottom:18px;
+  background:var(--bg-input);border:1px solid var(--border);
+  border-radius:var(--rs);padding:3px;width:fit-content}
+.src-tab{padding:6px 18px;border:none;border-radius:7px;font-size:13px;
+  font-weight:500;cursor:pointer;background:transparent;
+  color:var(--muted);transition:var(--tr)}
+.src-tab:hover{color:var(--text)}
+.src-tab.active{background:var(--bg-hover);color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+
+/* preview */
+.prev-card{display:flex;gap:14px;padding:14px}
+.prev-thumb{width:118px;height:66px;border-radius:var(--rs);object-fit:cover;
+  background:var(--border);flex-shrink:0}
+.prev-thumb-ph{width:118px;height:66px;border-radius:var(--rs);
+  background:var(--border);flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;font-size:22px;color:var(--dim)}
+.prev-info{flex:1;min-width:0}
+.prev-title{font-size:13.5px;font-weight:600;line-height:1.4;margin-bottom:5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prev-meta{font-size:12px;color:var(--muted);margin-bottom:10px}
+.prev-acts{display:flex;gap:7px;flex-wrap:wrap}
+.yt-embed{margin-bottom:14px;border-radius:var(--r);overflow:hidden;aspect-ratio:16/9}
+.yt-embed iframe{width:100%;height:100%;border:none}
+
+/* progress */
+.prog-wrap{padding:18px}
+.steps{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.step{display:flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;
+  font-size:11.5px;font-weight:500;background:var(--bg-input);
+  border:1px solid var(--border);color:var(--muted);transition:var(--tr)}
+.step.active{border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
+.step.done{border-color:var(--ok);color:var(--ok);background:rgba(16,185,129,.1)}
+.step.err{border-color:var(--err);color:var(--err)}
+.dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+.step.active .dot{animation:pulse 1.1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:10px}
+.bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--a2));
+  border-radius:2px;transition:width .45s ease}
+.prog-msg{font-size:12.5px;color:var(--muted)}
+
+/* drop zone */
+.drop-zone{border:2px dashed var(--border-b);border-radius:var(--r);
+  padding:44px 20px;text-align:center;cursor:pointer;transition:var(--tr);
+  background:var(--bg-input);user-select:none}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);
+  background:var(--accent-glow)}
+.dz-icon{font-size:38px;margin-bottom:10px;opacity:.5;line-height:1}
+.dz-title{font-size:14px;font-weight:600;margin-bottom:5px}
+.dz-sub{font-size:12.5px;color:var(--muted);margin-bottom:6px}
+.dz-types{font-size:11px;color:var(--dim)}
+
+/* uploaded file card */
+.file-card{display:flex;gap:14px;align-items:flex-start;
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--r);padding:14px;margin-top:12px}
+.fc-icon{font-size:30px;flex-shrink:0;line-height:1;padding-top:2px}
+.fc-info{flex:1;min-width:0}
+.fc-filename{font-size:13px;font-weight:600;margin-bottom:3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.fc-size{font-size:11.5px;color:var(--muted);margin-bottom:8px}
+
+/* song grid */
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.sc{position:relative;background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--r);overflow:hidden;transition:var(--tr)}
+.sc:hover{border-color:var(--border-b);box-shadow:0 3px 18px rgba(0,0,0,.4)}
+.sc:hover .sc-del{opacity:1}
+.sc-thumb{width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--border);display:block}
+.sc-thumb-ph{width:100%;aspect-ratio:16/9;background:var(--border);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--dim);font-size:30px}
+.sc-body{padding:11px}
+.sc-title{font-size:13px;font-weight:600;line-height:1.4;margin-bottom:6px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sc-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.bpm{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;
+  background:rgba(124,58,237,.2);color:#a78bfa;border:1px solid rgba(124,58,237,.3)}
+.tag{padding:2px 7px;border-radius:4px;font-size:11px;
+  background:var(--bg-hover);color:var(--muted);border:1px solid var(--border)}
+.mb{display:flex;flex-direction:column;gap:3px}
+.mbr{display:flex;align-items:center;gap:5px}
+.mbl{width:48px;font-size:10px;color:var(--dim);text-align:right;flex-shrink:0}
+.mbt{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.mbf{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--a2));
+  transition:width .6s ease}
+.sc-del{position:absolute;top:7px;right:7px;opacity:0;width:24px;height:24px;
+  border-radius:50%;border:none;cursor:pointer;background:rgba(239,68,68,.85);
+  color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;
+  transition:var(--tr)}
+.sc-del:hover{background:var(--err)}
+.sc-play{position:absolute;top:7px;right:38px;opacity:0;width:24px;height:24px;
+  border-radius:50%;border:none;cursor:pointer;background:rgba(6,182,212,.85);
+  color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;
+  transition:var(--tr)}
+.sc-play:hover{background:var(--a2)}
+.sc:hover .sc-play{opacity:1}
+
+/* playlist item play btn */
+.pl-play-btn{flex-shrink:0;width:26px;height:26px;border-radius:50%;
+  border:1px solid var(--border-b);background:transparent;
+  color:var(--a2);font-size:10px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:var(--tr)}
+.pl-play-btn:hover{background:var(--a2-glow);border-color:var(--a2)}
+
+/* mini player */
+#mini-player{position:fixed;bottom:70px;right:22px;width:320px;
+  background:var(--bg-card);border:1px solid var(--border-b);
+  border-radius:var(--r);overflow:hidden;z-index:500;
+  box-shadow:0 8px 40px rgba(0,0,0,.7);
+  transition:opacity .2s ease,transform .2s ease}
+#mini-player.hidden{opacity:0;pointer-events:none;transform:translateY(8px)}
+.mp-bar{display:flex;align-items:center;gap:7px;padding:8px 10px;
+  background:var(--bg-hover);border-bottom:1px solid var(--border)}
+.mp-icon{font-size:12px;flex-shrink:0;color:var(--a2)}
+.mp-title{flex:1;font-size:12px;font-weight:500;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mp-yt-btn{flex-shrink:0;font-size:13px;color:var(--a2);opacity:.75;
+  text-decoration:none;line-height:1;transition:opacity .15s}
+.mp-yt-btn:hover{opacity:1}
+.mp-close{border:none;background:transparent;color:var(--muted);
+  cursor:pointer;font-size:16px;padding:0;line-height:1;flex-shrink:0}
+.mp-close:hover{color:var(--err)}
+#mp-wrap{position:relative;aspect-ratio:16/9}
+#mp-iframe{width:100%;height:100%;border:none;display:block}
+#mp-err{display:none;position:absolute;inset:0;flex-direction:column;
+  align-items:center;justify-content:center;gap:10px;
+  background:var(--bg-card);text-align:center;padding:16px}
+.mp-err-icon{font-size:32px;opacity:.3}
+.mp-err-txt{font-size:12px;color:var(--muted)}
+.mp-err-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;
+  border-radius:var(--rs);font-size:12px;font-weight:600;color:var(--a2);
+  border:1px solid rgba(6,182,212,.35);background:rgba(6,182,212,.1);
+  text-decoration:none;transition:var(--tr)}
+.mp-err-btn:hover{background:rgba(6,182,212,.2)}
+
+/* empty / locked */
+.empty{text-align:center;padding:56px 20px;color:var(--muted)}
+.empty .ei{font-size:44px;margin-bottom:12px;opacity:.35}
+.locked{background:var(--bg-card);border:1px dashed var(--border-b);
+  border-radius:var(--r);padding:36px;text-align:center}
+.locked .li{font-size:38px;margin-bottom:12px;opacity:.45}
+.locked p{color:var(--muted);font-size:13px;line-height:1.7}
+.locked strong{color:var(--accent)}
+
+/* taste tab */
+.taste-hdr{display:flex;gap:20px;margin-bottom:20px;flex-wrap:wrap}
+.cons-box{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);
+  padding:22px;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:156px}
+.g-svg{width:108px;height:108px}
+.g-track{fill:none;stroke:var(--border);stroke-width:10}
+.g-fill{fill:none;stroke-width:10;stroke-linecap:round;
+  transform-origin:center;transform:rotate(-90deg);
+  transition:stroke-dashoffset .9s ease,stroke .4s}
+.g-num{font-size:22px;font-weight:800;fill:#fff;dominant-baseline:middle;text-anchor:middle}
+.g-sub{font-size:9px;fill:var(--muted);dominant-baseline:middle;text-anchor:middle}
+.cons-lbl{font-size:11.5px;color:var(--muted);font-weight:500}
+.cons-grade{font-size:14px;font-weight:700}
+.prof-box{flex:1;background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--r);padding:18px;min-width:180px}
+.prof-box p{font-size:12.5px;color:var(--muted);line-height:1.7;margin-bottom:5px}
+
+/* dim chart */
+.dc{background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--r);padding:18px;margin-bottom:18px}
+.dr{display:flex;align-items:center;gap:9px;padding:5px 0}
+.dl{width:66px;font-size:12px;color:var(--muted);text-align:right;flex-shrink:0}
+.dt{flex:1;height:9px;background:var(--border);border-radius:5px;position:relative}
+.df{height:100%;border-radius:5px;background:linear-gradient(90deg,var(--accent),var(--a2));
+  transition:width .8s ease}
+.ds{position:absolute;top:0;height:100%;background:rgba(255,255,255,.1);border-radius:5px}
+.dv{width:32px;font-size:11px;color:var(--muted);text-align:right;flex-shrink:0}
+.dd{font-size:10.5px;color:var(--dim);padding-left:77px;padding-top:1px;padding-bottom:4px}
+
+/* filter panel */
+.filter-panel{background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--r);padding:16px;margin-bottom:16px}
+.filter-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.filter-row:last-child{margin-bottom:0}
+.filter-lbl{width:36px;font-size:11.5px;color:var(--muted);padding-top:5px;flex-shrink:0}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{padding:4px 11px;border-radius:20px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);font-size:12px;cursor:pointer;
+  transition:var(--tr)}
+.chip:hover{border-color:var(--border-b);color:var(--text)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.filter-acts{display:flex;gap:8px;margin-top:14px;align-items:center;flex-wrap:wrap}
+
+/* rec song cards */
+.rec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.rec-card{background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--r);overflow:hidden;transition:var(--tr);
+  display:flex;flex-direction:column}
+.rec-card:hover{border-color:var(--border-b)}
+.rec-card.added{border-color:var(--ok);opacity:.75}
+.rec-thumb-wrap{position:relative;width:100%;flex-shrink:0}
+.rec-thumb{width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--border);display:block}
+.rec-play{position:absolute;bottom:7px;right:7px;opacity:0;width:28px;height:28px;
+  border-radius:50%;border:none;cursor:pointer;background:rgba(6,182,212,.85);
+  color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;
+  transition:var(--tr)}
+.rec-play:hover{background:var(--a2)}
+.rec-card:hover .rec-play{opacity:1}
+.rec-body{padding:10px;display:flex;flex-direction:column;flex:1}
+.rec-title{font-size:12.5px;font-weight:600;line-height:1.4;margin-bottom:6px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  flex:1}
+.rec-dur{font-size:11px;color:var(--dim);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.rec-sim-badge{margin-left:auto;font-size:10px;font-weight:700;padding:1px 6px;
+  border-radius:10px;background:rgba(139,92,246,.18);color:var(--accent);white-space:nowrap}
+.rec-why{font-size:10.5px;color:var(--muted);line-height:1.4;margin-bottom:8px;
+  border-left:2px solid var(--accent);padding-left:6px}
+.rec-acts{display:flex;gap:5px;flex-wrap:wrap;margin-top:auto}
+.btn-ym{display:inline-flex;align-items:center;gap:4px;padding:4px 9px;
+  border-radius:5px;font-size:11px;font-weight:600;border:1px solid rgba(6,182,212,.3);
+  color:var(--a2);background:rgba(6,182,212,.1);cursor:pointer;transition:var(--tr)}
+.btn-ym:hover{background:rgba(6,182,212,.2)}
+.rec-add-btn{padding:4px 9px;border-radius:5px;font-size:11px;font-weight:600;
+  border:none;background:var(--accent);color:#fff;cursor:pointer;transition:var(--tr)}
+.rec-add-btn:hover{background:#6d28d9}
+.rec-add-btn:disabled{opacity:.5;cursor:not-allowed}
+.rec-status-ok{background:var(--ok);color:#fff}
+.rec-sort-btn{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;
+  border:1px solid var(--border);background:var(--bg-card);color:var(--muted);
+  cursor:pointer;transition:var(--tr)}
+.rec-sort-btn:hover{border-color:var(--border-b);color:var(--text)}
+.rec-sort-btn.active{border-color:var(--accent);background:rgba(139,92,246,.12);color:var(--accent)}
+.rec-group-hdr{font-size:11.5px;color:var(--muted);margin:14px 0 8px;
+  padding-left:4px;border-left:2px solid var(--accent)}
+
+/* playlist import */
+.pl-import{background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--r);overflow:hidden;margin-top:8px}
+.pl-import-hdr{display:flex;align-items:center;gap:8px;padding:12px 16px;
+  cursor:pointer;user-select:none}
+.pl-import-hdr:hover{background:var(--bg-hover)}
+.pl-import-hdr svg{transition:transform .2s;flex-shrink:0}
+.pl-import-hdr.open svg{transform:rotate(90deg)}
+.pl-import-body{padding:14px 16px;border-top:1px solid var(--border)}
+.pl-list{max-height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;
+  margin:10px 0}
+.pl-item{display:flex;align-items:center;gap:8px;padding:6px 8px;
+  border-radius:var(--rx);cursor:pointer;transition:var(--tr)}
+.pl-item:hover{background:var(--bg-hover)}
+.pl-thumb{width:56px;height:32px;border-radius:4px;object-fit:cover;
+  background:var(--border);flex-shrink:0}
+.pl-thumb-ph{width:56px;height:32px;border-radius:4px;flex-shrink:0;
+  background:var(--border);display:flex;align-items:center;justify-content:center;
+  color:var(--dim);font-size:14px}
+.pl-title{flex:1;font-size:12.5px;line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.pl-dur{font-size:11px;color:var(--dim);flex-shrink:0}
+.pl-footer{display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:8px;margin-top:10px}
+.pl-sel-cnt{font-size:12.5px;color:var(--muted)}
+
+/* batch progress */
+.batch-wrap{background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--r);padding:16px;margin-top:14px}
+.batch-cur{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.batch-cur-thumb{width:52px;height:29px;border-radius:4px;object-fit:cover;
+  background:var(--border)}
+.batch-cur-title{font-size:12.5px;flex:1}
+.batch-log{max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:3px}
+.blog-item{display:flex;align-items:center;gap:6px;font-size:12px;padding:2px 0}
+.blog-ok{color:var(--ok)}.blog-err{color:var(--err)}.blog-skip{color:var(--dim)}
+
+/* rate result */
+.rate-top{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;margin-bottom:18px}
+.rate-thumb{width:150px;border-radius:var(--rs);display:block;flex-shrink:0}
+.rate-title-a{flex:1;min-width:0}
+.rate-title{font-size:15px;font-weight:700;line-height:1.4;margin-bottom:14px}
+.mc-wrap{display:flex;align-items:center;gap:14px}
+.mc-svg{width:86px;height:86px;flex-shrink:0}
+.mc-track{fill:none;stroke:var(--border);stroke-width:9}
+.mc-fill{fill:none;stroke-width:9;stroke-linecap:round;
+  transform-origin:center;transform:rotate(-90deg);
+  transition:stroke-dashoffset .9s ease .15s,stroke .4s}
+.mc-num{font-size:17px;font-weight:800;fill:#fff;dominant-baseline:middle;text-anchor:middle}
+.mc-unit{font-size:8.5px;fill:var(--muted);dominant-baseline:middle;text-anchor:middle}
+.mc-desc{display:flex;flex-direction:column;gap:3px}
+.mc-lbl{font-size:12px;color:var(--muted)}
+.mc-grade{font-size:16px;font-weight:700}
+.rate-secs{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:580px){.rate-secs{grid-template-columns:1fr}}
+.rate-box{background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--r);padding:14px}
+.dev-row{display:flex;align-items:center;gap:7px;padding:5px 0;
+  border-bottom:1px solid var(--border)}
+.dev-row:last-child{border-bottom:none}
+.dev-lbl{width:56px;font-size:11.5px;color:var(--muted);flex-shrink:0}
+.dev-bars{flex:1}
+.dev-br{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--dim)}
+.dev-bt{flex:1;height:4px;background:var(--border);border-radius:3px;overflow:hidden}
+.dev-bf{height:100%;border-radius:3px;transition:width .65s ease}
+.bf-s{background:var(--a2)}.bf-p{background:var(--accent);opacity:.6}
+.dev-bdg{flex-shrink:0;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600}
+.bdg-h{background:rgba(245,158,11,.15);color:var(--warn)}
+.bdg-l{background:rgba(124,58,237,.15);color:#a78bfa}
+.bdg-ok{background:rgba(16,185,129,.1);color:var(--ok)}
+.sim-list{display:flex;flex-direction:column;gap:7px}
+.sim-item{display:flex;align-items:center;gap:8px}
+.sim-thumb{width:44px;height:25px;border-radius:4px;object-fit:cover;
+  background:var(--border);flex-shrink:0}
+.sim-title{flex:1;font-size:11.5px;line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sim-score{font-size:12px;font-weight:700;color:var(--a2);flex-shrink:0;width:36px;text-align:right}
+
+/* scoring explanation box */
+.score-explain{background:var(--bg-input);border:1px solid var(--border);
+  border-radius:var(--rs);padding:12px 14px;font-size:12px;color:var(--muted);
+  line-height:1.7;margin-top:18px}
+.score-explain strong{color:var(--text)}
+.score-explain .se-row{display:flex;align-items:center;gap:8px;margin-top:5px}
+.se-bdg{padding:2px 7px;border-radius:3px;font-size:11px;font-weight:700;flex-shrink:0}
+
+/* rec analysis modal */
+.rec-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);
+  z-index:500;display:flex;align-items:center;justify-content:center;padding:20px}
+.rec-modal{background:var(--bg-card);border:1px solid var(--border-b);
+  border-radius:var(--r);width:100%;max-width:540px;max-height:85vh;
+  overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.rec-modal-hdr{display:flex;align-items:flex-start;gap:12px;padding:16px;
+  border-bottom:1px solid var(--border);position:sticky;top:0;
+  background:var(--bg-card);z-index:1}
+.rec-modal-thumb{width:80px;height:45px;border-radius:6px;object-fit:cover;
+  background:var(--border);flex-shrink:0}
+.rec-modal-meta{flex:1;min-width:0}
+.rec-modal-title{font-size:14px;font-weight:700;line-height:1.4;margin-bottom:4px}
+.rec-modal-sim{font-size:12px;color:var(--a2);font-weight:600}
+.rec-modal-close{flex-shrink:0;padding:5px;border:none;background:transparent;
+  color:var(--muted);cursor:pointer;font-size:18px;line-height:1;border-radius:4px}
+.rec-modal-close:hover{color:var(--text);background:var(--bg-hover)}
+.rec-modal-body{padding:16px}
+.rec-why-box{background:var(--bg-input);border-left:3px solid var(--accent);
+  border-radius:0 var(--rs) var(--rs) 0;padding:10px 12px;
+  font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:14px}
+.rec-why-box strong{color:var(--text)}
+.rec-why-box .why-title{font-size:12.5px;font-weight:700;color:var(--accent);margin-bottom:6px}
+.rec-modal-sec{font-size:12px;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px}
+
+/* analysis btn on rec cards */
+.rec-info-btn{padding:4px 9px;border-radius:5px;font-size:11px;font-weight:600;
+  border:1px solid var(--border-b);background:transparent;color:var(--muted);
+  cursor:pointer;transition:var(--tr)}
+.rec-info-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* raw dim groups */
+.rdg{margin-bottom:14px}
+.rdg-title{font-size:11.5px;font-weight:700;color:var(--accent);
+  margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.rdr{display:flex;align-items:center;gap:6px;padding:3px 0}
+.rdl{width:100px;font-size:11px;color:var(--muted);text-align:right;flex-shrink:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rdt{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.rdf{height:100%;border-radius:3px;
+  background:linear-gradient(90deg,var(--accent),var(--a2));transition:width .5s ease}
+.rdv{width:54px;font-size:10px;color:var(--dim);text-align:right;flex-shrink:0}
+.rdd{font-size:10px;color:var(--dim);padding-left:108px;line-height:1.4;
+  margin-bottom:2px;padding-bottom:2px}
+
+/* toast */
+.toast{position:fixed;bottom:22px;right:22px;z-index:999;
+  padding:11px 16px;border-radius:var(--rs);font-size:13px;font-weight:500;
+  box-shadow:0 4px 20px rgba(0,0,0,.5);transform:translateY(16px);
+  opacity:0;transition:var(--tr);pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+.t-ok{background:#064e3b;color:#6ee7b7;border:1px solid #059669}
+.t-err{background:#450a0a;color:#fca5a5;border:1px solid #dc2626}
+.t-info{background:#1e1b4b;color:#a5b4fc;border:1px solid #4f46e5}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- HEADER -->
+<header>
+<div class="hdr">
+  <div class="logo">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a78bfa"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="5.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="15.5" r="2.5"/>
+      <polyline points="8 17 8 5 20 3 20 15"/><line x1="8" y1="11" x2="20" y2="9"/>
+    </svg>
+    Muse
+  </div>
+  <nav class="tabs">
+    <button class="tab active" data-tab="add"      onclick="switchTab('add')">加入歌曲</button>
+    <button class="tab"        data-tab="playlist" onclick="switchTab('playlist')">
+      我的歌單<span id="song-count" class="badge">0</span>
+    </button>
+    <button class="tab"        data-tab="taste"    onclick="switchTab('taste')">分析品味</button>
+    <button class="tab"        data-tab="rate"     onclick="switchTab('rate')">評分歌曲</button>
+  </nav>
+  <!-- profile picker -->
+  <div class="profile-picker" id="profile-picker">
+    <button class="profile-pick-btn" id="profile-pick-btn" onclick="toggleProfileMenu(event)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+      <span id="profile-pick-label">設定檔 1</span>
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="profile-menu hidden" id="profile-menu"></div>
+  </div>
+</div>
+</header>
+
+<main>
+
+<!-- ═══════════════════════════════════════════════════
+     TAB 1: 加入歌曲
+═══════════════════════════════════════════════════ -->
+<section id="tab-add" class="tab-content active">
+<div class="wrap">
+  <h2>加入歌曲</h2>
+
+  <!-- source type tabs -->
+  <div class="src-tabs">
+    <button class="src-tab active" data-src="url" onclick="switchSrc('url')">🔗 網址</button>
+    <button class="src-tab" data-src="file" onclick="switchSrc('file')">📁 本機檔案</button>
+  </div>
+
+  <!-- ── URL panel ── -->
+  <div id="src-url">
+
+    <!-- single URL -->
+    <div class="url-grp">
+      <input id="add-url" class="ui" placeholder="貼上 YouTube 或 Spotify 網址…"
+             onkeydown="if(event.key==='Enter')fetchVideoInfo()">
+      <button id="fetch-btn" class="btn btn-p" onclick="fetchVideoInfo()">取得資訊</button>
+    </div>
+
+    <!-- preview -->
+    <div id="video-preview" class="card hidden" style="margin-bottom:12px">
+      <div class="prev-card">
+        <img id="prev-thumb" class="prev-thumb" src="" alt="">
+        <div class="prev-info">
+          <div id="prev-title" class="prev-title"></div>
+          <div id="prev-meta"  class="prev-meta"></div>
+          <div class="prev-acts">
+            <button id="prev-play-btn" class="btn btn-g btn-sm" onclick="togglePreview()">▶ 播放預覽</button>
+            <button id="add-btn" class="btn btn-p btn-sm" onclick="startAddSong()">＋ 加入歌單</button>
+          </div>
+        </div>
+      </div>
+      <!-- preview now uses the floating mini-player -->
+    </div>
+
+    <!-- add progress -->
+    <div id="add-prog" class="card prog-wrap hidden">
+      <div class="steps">
+        <div class="step" id="sp-info"><span class="dot"></span>取得資訊</div>
+        <div class="step" id="sp-dl"><span class="dot"></span>下載音訊</div>
+        <div class="step" id="sp-an"><span class="dot"></span>分析特徵</div>
+      </div>
+      <div class="bar"><div id="add-fill" class="bar-fill" style="width:0"></div></div>
+      <div id="add-msg" class="prog-msg"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── PLAYLIST IMPORT ── -->
+    <div class="pl-import">
+      <div class="pl-import-hdr" id="pl-hdr" onclick="togglePlImport()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+        <span style="font-size:13px;font-weight:600">匯入播放清單</span>
+        <span style="font-size:12px;color:var(--muted);margin-left:4px">YouTube / Spotify 播放清單批次分析</span>
+      </div>
+      <div id="pl-body" class="pl-import-body hidden">
+        <div class="url-grp" style="margin-bottom:10px">
+          <input id="pl-url" class="ui" placeholder="貼上 YouTube 或 Spotify 播放清單網址…"
+                 onkeydown="if(event.key==='Enter')fetchPlaylist()">
+          <button id="pl-fetch-btn" class="btn btn-g btn-sm" onclick="fetchPlaylist()">讀取清單</button>
+        </div>
+
+        <div id="pl-preview" class="hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;
+               flex-wrap:wrap;gap:8px;margin-bottom:8px">
+            <div>
+              <span id="pl-name" style="font-size:13px;font-weight:600"></span>
+              <span id="pl-cnt"  style="font-size:12px;color:var(--muted);margin-left:8px"></span>
+            </div>
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
+              <input type="checkbox" id="pl-selall" onchange="plToggleAll(this)"> 全選
+            </label>
+          </div>
+          <div id="pl-list" class="pl-list"></div>
+          <div class="pl-footer">
+            <span id="pl-sel-cnt" class="pl-sel-cnt">已選 0 首</span>
+            <button id="pl-add-btn" class="btn btn-p btn-sm" onclick="startBatchAdd()" disabled>
+              ＋ 加入選取項目
+            </button>
+          </div>
+        </div>
+
+        <!-- batch progress -->
+        <div id="batch-prog" class="batch-wrap hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <span id="batch-overall" style="font-size:12.5px;color:var(--muted)">處理中…</span>
+          </div>
+          <div class="bar" style="margin-bottom:10px">
+            <div id="batch-fill" class="bar-fill" style="width:0"></div>
+          </div>
+          <div class="batch-cur">
+            <img id="batch-thumb" class="batch-cur-thumb" src="" alt="">
+            <span id="batch-title" class="batch-cur-title"></span>
+          </div>
+          <div id="batch-log" class="batch-log"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end #src-url -->
+
+  <!-- ── File upload panel ── -->
+  <div id="src-file" class="hidden">
+
+    <div class="drop-zone" id="drop-zone"
+         ondragover="dzDragOver(event)" ondragleave="dzDragLeave(event)" ondrop="dzDrop(event)"
+         onclick="document.getElementById('file-input').click()">
+      <input type="file" id="file-input"
+             accept=".mp3,.wav,.flac,.m4a,.aac,.ogg,.opus,.wma"
+             style="display:none" onchange="handleFileSelect(event)">
+      <div class="dz-icon">🎵</div>
+      <div class="dz-title">拖放音訊檔案至此處</div>
+      <div class="dz-sub">或點擊選取檔案</div>
+      <div class="dz-types">支援 MP3 · WAV · FLAC · M4A · AAC · OGG · OPUS · WMA</div>
+    </div>
+
+    <!-- file info card (shown after selection) -->
+    <div id="file-card" class="file-card hidden">
+      <div class="fc-icon">🎵</div>
+      <div class="fc-info">
+        <div id="fc-filename" class="fc-filename"></div>
+        <div id="fc-size" class="fc-size"></div>
+        <input id="fc-title" class="ui" placeholder="曲名（可編輯）" style="margin-top:8px;flex:unset;width:100%">
+      </div>
+    </div>
+
+    <!-- analyze button -->
+    <div id="file-acts" class="hidden" style="margin-top:12px;display:flex;gap:8px;align-items:center">
+      <button id="file-analyze-btn" class="btn btn-p" onclick="analyzeUpload()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        分析並加入歌單
+      </button>
+      <button class="btn btn-g" onclick="clearFileUpload()">✕ 清除</button>
+    </div>
+
+    <!-- upload / analyze progress -->
+    <div id="upload-prog" class="card prog-wrap hidden" style="margin-top:14px">
+      <div class="steps">
+        <div class="step" id="usp-up"><span class="dot"></span>上傳檔案</div>
+        <div class="step" id="usp-an"><span class="dot"></span>分析特徵</div>
+      </div>
+      <div class="bar"><div id="upload-fill" class="bar-fill" style="width:0"></div></div>
+      <div id="upload-msg" class="prog-msg"></div>
+    </div>
+
+  </div><!-- end #src-file -->
+
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     TAB 2: 我的歌單
+═══════════════════════════════════════════════════ -->
+<section id="tab-playlist" class="tab-content">
+<div class="wrap">
+  <h2>我的歌單</h2>
+  <div id="pl-grid" class="sg"></div>
+  <div id="pl-empty" class="empty hidden">
+    <div class="ei">🎵</div>
+    <p>歌單是空的<br>切換到「加入歌曲」開始加入</p>
+  </div>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     TAB 3: 分析品味
+═══════════════════════════════════════════════════ -->
+<section id="tab-taste" class="tab-content">
+<div class="wrap">
+  <h2>分析品味</h2>
+
+  <div id="taste-locked" class="locked">
+    <div class="li">🔒</div>
+    <p>需要至少 <strong>3 首歌曲</strong> 才能分析品味<br>
+    目前歌單：<strong id="locked-cnt">0</strong> 首</p>
+  </div>
+
+  <div id="taste-content" class="hidden">
+
+    <!-- consistency + profile summary -->
+    <div class="taste-hdr">
+      <div class="cons-box">
+        <svg class="g-svg" viewBox="0 0 110 110">
+          <circle class="g-track" cx="55" cy="55" r="44"/>
+          <circle class="g-fill"  cx="55" cy="55" r="44" id="g-fill"
+            stroke-dasharray="276.46" stroke-dashoffset="276.46" stroke="var(--accent)"/>
+          <text class="g-num" x="55" y="52" id="g-num">0</text>
+          <text class="g-sub" x="55" y="65">/ 100</text>
+        </svg>
+        <div class="cons-lbl">品味一致性</div>
+        <div class="cons-grade" id="g-grade"></div>
+      </div>
+      <div class="prof-box">
+        <h3>品味側寫</h3>
+        <div id="prof-txt"></div>
+      </div>
+    </div>
+
+    <!-- 11-dim chart -->
+    <div class="dc">
+      <h3>十一維展示特徵</h3>
+      <div id="dim-rows"></div>
+    </div>
+
+    <!-- 83-dim raw features accordion -->
+    <div class="dc" id="raw-dims-panel">
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"
+           onclick="toggleRawDims()">
+        <h3 style="margin:0">83 維原始特徵明細</h3>
+        <span id="raw-dims-arrow" style="font-size:13px;color:var(--muted)">▶ 展開</span>
+      </div>
+      <div id="raw-dims-body" class="hidden" style="margin-top:14px">
+        <div id="raw-dims-content"></div>
+      </div>
+    </div>
+
+    <!-- musical style inference card -->
+    <div class="dc" id="style-panel" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <h3 style="margin:0">🎼 音樂品味特質分析</h3>
+        <span style="font-size:11px;color:var(--muted)">由音訊特徵自動推導</span>
+      </div>
+      <div id="style-content" style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px"></div>
+      <div style="margin-top:10px;font-size:11.5px;color:var(--muted);
+                  border-top:1px solid var(--border);padding-top:8px;line-height:1.6">
+        ✦ 以上偏好特質已自動加入推薦搜尋條件中，作為音樂推薦的參考依據
+      </div>
+    </div>
+
+    <!-- filter panel -->
+    <div class="filter-panel">
+      <div class="filter-row">
+        <span class="filter-lbl">語言</span>
+        <div class="chips" id="chips-lang">
+          <button class="chip on" data-v="">全部</button>
+          <button class="chip" data-v="zh">中文</button>
+          <button class="chip" data-v="yue">粵語</button>
+          <button class="chip" data-v="en">英文</button>
+          <button class="chip" data-v="ja">日文</button>
+          <button class="chip" data-v="ko">韓文</button>
+          <button class="chip" data-v="fr">法文</button>
+          <button class="chip" data-v="es">西班牙文</button>
+          <button class="chip" data-v="de">德文</button>
+          <button class="chip" data-v="it">義大利文</button>
+          <button class="chip" data-v="pt">葡萄牙文</button>
+        </div>
+      </div>
+      <div class="filter-row">
+        <span class="filter-lbl">風格</span>
+        <div class="chips" id="chips-genre">
+          <button class="chip on" data-v="">全部</button>
+          <button class="chip" data-v="pop">流行</button>
+          <button class="chip" data-v="rock">搖滾</button>
+          <button class="chip" data-v="electronic">電子</button>
+          <button class="chip" data-v="rnb">R&amp;B</button>
+          <button class="chip" data-v="hiphop">嘻哈</button>
+          <button class="chip" data-v="folk">民謠</button>
+          <button class="chip" data-v="jazz">爵士</button>
+          <button class="chip" data-v="classical">古典</button>
+          <button class="chip" data-v="indie">獨立</button>
+          <button class="chip" data-v="city_pop">城市流行</button>
+          <button class="chip" data-v="soul">靈魂樂</button>
+          <button class="chip" data-v="blues">藍調</button>
+          <button class="chip" data-v="country">鄉村</button>
+          <button class="chip" data-v="funk">放克</button>
+          <button class="chip" data-v="reggae">雷鬼</button>
+          <button class="chip" data-v="punk">龐克</button>
+          <button class="chip" data-v="metal">金屬</button>
+          <button class="chip" data-v="dance">舞曲</button>
+          <button class="chip" data-v="pure_instrumental">純音樂</button>
+        </div>
+      </div>
+      <div class="filter-row">
+        <span class="filter-lbl">情緒</span>
+        <div class="chips" id="chips-mood">
+          <button class="chip on" data-v="">不限</button>
+          <button class="chip" data-v="happy">歡快</button>
+          <button class="chip" data-v="calm">舒緩</button>
+          <button class="chip" data-v="energetic">激昂</button>
+          <button class="chip" data-v="sad">憂鬱</button>
+          <button class="chip" data-v="romantic">浪漫</button>
+          <button class="chip" data-v="nostalgic">懷念</button>
+          <button class="chip" data-v="uplifting">振奮</button>
+          <button class="chip" data-v="dreamy">夢幻</button>
+          <button class="chip" data-v="lonely">孤獨</button>
+          <button class="chip" data-v="night">夜晚</button>
+        </div>
+      </div>
+      <div class="filter-row">
+        <span class="filter-lbl">年代</span>
+        <div class="chips" id="chips-era">
+          <button class="chip on" data-v="">不限</button>
+          <button class="chip" data-v="pre70">70年代前</button>
+          <button class="chip" data-v="70s">70年代</button>
+          <button class="chip" data-v="80s">80年代</button>
+          <button class="chip" data-v="pre90">90年代前</button>
+          <button class="chip" data-v="90s">90年代</button>
+          <button class="chip" data-v="2000s">2000年代</button>
+          <button class="chip" data-v="2010s">2010年代</button>
+          <button class="chip" data-v="2020s">2020年代後</button>
+        </div>
+      </div>
+      <div class="filter-row">
+        <span class="filter-lbl">聲線</span>
+        <div class="chips" id="chips-voice">
+          <button class="chip on" data-v="">不限</button>
+          <button class="chip" data-v="male">男聲</button>
+          <button class="chip" data-v="female">女聲</button>
+          <button class="chip" data-v="chorus">合唱</button>
+        </div>
+      </div>
+      <div class="filter-row" style="align-items:center">
+        <span class="filter-lbl" style="color:var(--ok)">偏好</span>
+        <input id="rec-include" class="ui" style="padding:5px 10px;font-size:12px;
+               border-color:rgba(16,185,129,.35)"
+               placeholder="正向關鍵詞（例：清唱、樂團、鋼琴、acoustic、原聲帶…）">
+      </div>
+      <div class="filter-row" style="align-items:center">
+        <span class="filter-lbl" style="color:var(--err)">避開</span>
+        <input id="rec-exclude" class="ui" style="padding:5px 10px;font-size:12px;
+               border-color:rgba(239,68,68,.3)"
+               placeholder="排除關鍵詞（例：某歌手名、cover、remix、live…）">
+      </div>
+      <div class="filter-acts">
+        <button id="rec-btn" class="btn btn-p" onclick="generateRecs()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          生成推薦歌曲
+        </button>
+        <button class="btn btn-g btn-sm" onclick="clearRecHistory()"
+                title="清除已出現過的歌曲記錄，重新生成時不會避開這些歌曲">清除重複記錄</button>
+        <span id="rec-status-txt" style="font-size:12px;color:var(--muted)"></span>
+      </div>
+    </div>
+
+    <!-- recommendation results -->
+    <div id="rec-area" class="hidden">
+      <div class="bar" style="margin-bottom:8px">
+        <div id="rec-fill" class="bar-fill" style="width:0"></div>
+      </div>
+      <div id="rec-sort-bar" class="hidden" style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--muted)">排序：</span>
+        <button class="rec-sort-btn active" data-sort="order" onclick="sortRecs('order')">出現順序</button>
+        <button class="rec-sort-btn" data-sort="sim"   onclick="sortRecs('sim')">相似度 ↓</button>
+        <button class="rec-sort-btn" data-sort="title" onclick="sortRecs('title')">標題 A→Z</button>
+        <span id="rec-count-txt" style="margin-left:auto;font-size:11px;color:var(--muted)"></span>
+      </div>
+      <div id="rec-groups"></div>
+    </div>
+
+  </div>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     TAB 4: 評分歌曲
+═══════════════════════════════════════════════════ -->
+<section id="tab-rate" class="tab-content">
+<div class="wrap">
+  <h2>評分歌曲</h2>
+  <div class="url-grp">
+    <input id="rate-url" class="ui" placeholder="貼上 YouTube 或 Spotify 網址，與你的品味對比…"
+           onkeydown="if(event.key==='Enter')startRateSong()">
+    <button id="rate-btn" class="btn btn-p" onclick="startRateSong()">開始評分</button>
+  </div>
+
+  <div id="rate-prog" class="card prog-wrap hidden">
+    <div class="steps">
+      <div class="step" id="rsp-i"><span class="dot"></span>取得資訊</div>
+      <div class="step" id="rsp-d"><span class="dot"></span>下載音訊</div>
+      <div class="step" id="rsp-a"><span class="dot"></span>分析特徵</div>
+      <div class="step" id="rsp-c"><span class="dot"></span>品味對比</div>
+    </div>
+    <div class="bar"><div id="rate-fill" class="bar-fill" style="width:0"></div></div>
+    <div id="rate-msg" class="prog-msg"></div>
+  </div>
+
+  <div id="rate-result" class="hidden">
+    <div class="rate-top">
+      <img id="r-thumb" class="rate-thumb" src="" alt="">
+      <div class="rate-title-a">
+        <div id="r-title" class="rate-title"></div>
+        <div class="mc-wrap">
+          <svg class="mc-svg" viewBox="0 0 90 90">
+            <circle class="mc-track" cx="45" cy="45" r="36"/>
+            <circle class="mc-fill" cx="45" cy="45" r="36" id="mc-fill"
+              stroke-dasharray="226.19" stroke-dashoffset="226.19" stroke="var(--ok)"/>
+            <text class="mc-num" x="45" y="42" id="mc-num">0</text>
+            <text class="mc-unit" x="45" y="55">% 匹配</text>
+          </svg>
+          <div class="mc-desc">
+            <div class="mc-lbl">與您的品味相符度</div>
+            <div class="mc-grade" id="mc-grade"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="rate-secs">
+      <div class="rate-box"><h3>各維度對比</h3><div id="r-devs"></div></div>
+      <div class="rate-box"><h3>歌單中最相似</h3><div id="r-sims" class="sim-list"></div></div>
+    </div>
+  </div>
+
+  <!-- scoring explanation -->
+  <div class="score-explain">
+    <strong>評分說明</strong>
+    <div style="margin-top:8px">
+      分數是將您歌單中所有歌曲的 <strong>83 維音訊特徵</strong>（節奏、音色、旋律比例、動態、音場…等）各自平均，與本曲做逐維度比對後計算得出。分數越高，代表本曲的整體「聲音樣貌」越貼近您的收聽偏好。
+    </div>
+    <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      <span class="se-bdg bdg-ok">匹配</span><span>差距 &lt; 15 分（0–100 標準化區間）</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px">
+      <span class="se-bdg bdg-h">偏高</span><span>本曲此維度數值比您的偏好高 15 分以上</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px">
+      <span class="se-bdg bdg-l">偏低</span><span>本曲此維度數值比您的偏好低 15 分以上</span>
+    </div>
+    <div style="margin-top:10px;color:var(--dim);font-size:11px">
+      ※ 整體相符度 = 100 − 各維度差距平均值。11 個維度各佔相同權重。
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- recommendation analysis modal -->
+<div class="rec-modal-overlay hidden" id="rec-modal-overlay"
+     onclick="if(event.target===this)closeRecModal()">
+  <div class="rec-modal" id="rec-modal">
+    <div class="rec-modal-hdr">
+      <img class="rec-modal-thumb" id="rm-thumb" src="" alt="">
+      <div class="rec-modal-meta">
+        <div class="rec-modal-title" id="rm-title"></div>
+        <div class="rec-modal-sim" id="rm-sim"></div>
+      </div>
+      <button class="rec-modal-close" onclick="closeRecModal()">✕</button>
+    </div>
+    <div class="rec-modal-body">
+      <div class="rec-why-box" id="rm-why"></div>
+      <div class="rec-modal-sec">各維度對比</div>
+      <div id="rm-devs"></div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+<!-- mini player (floating) -->
+<div id="mini-player" class="hidden">
+  <div class="mp-bar">
+    <span class="mp-icon">▶</span>
+    <span class="mp-title" id="mp-title">試聽</span>
+    <a id="mp-yt-btn" class="mp-yt-btn" href="#" target="_blank" rel="noopener"
+       title="在 YouTube Music 開啟">🎵</a>
+    <button class="mp-close" onclick="closeMiniPlayer()" title="關閉">✕</button>
+  </div>
+  <div id="mp-wrap">
+    <iframe id="mp-iframe" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+    <div id="mp-err">
+      <div class="mp-err-icon">🚫</div>
+      <div class="mp-err-txt">此影片禁止嵌入播放</div>
+      <a id="mp-err-link" class="mp-err-btn" href="#" target="_blank" rel="noopener">
+        ▶ 在 YouTube Music 開啟
+      </a>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ═══════════════════════════════ STATE ═══════════════════════════════
+const S = {
+  songs: [],
+  fetchedInfo: null,
+  fetchedIsSpotify: false,
+  adding: false,
+  rating: false,
+  recRunning: false,
+  recSeenIds: new Set(),   // across re-generations — cleared by user only
+  plVideos: [],
+  plTracks: [],
+  plType: 'youtube_playlist',
+  plSelected: new Set(),
+  uploadedFileId: null,
+  uploading: false,
+  activeProfile: 1,
+  profiles: [{id:1,name:'設定檔 1'},{id:2,name:'設定檔 2'},{id:3,name:'設定檔 3'}],
+};
+
+const DIM_LABELS = {
+  rhythm_speed:    '節奏速度',
+  brightness:      '音色亮度',
+  melody_ratio:    '旋律比例',
+  dynamic_range:   '動態範圍',
+  groove:          '律動強度',
+  stereo_width:    '立體寬度',
+  timbre_texture:  '音色質感',
+  bass_energy:     '低頻能量',
+  tonality:        '調性感',
+  beat_regularity: '節拍規律性',
+  bandwidth:       '聲音豐富度',
+};
+const DIM_DESCS = {
+  rhythm_speed:    '來源：tempo（BPM）── 每分鐘節拍數，反映整體速度感，慢速 = 舒緩抒情，高速 = 律動激昂',
+  brightness:      '來源：spectral_centroid_mean ── 頻譜能量的重心頻率，低 = 溫暖低沉，高 = 清亮高頻',
+  melody_ratio:    '來源：harmonic_ratio（HPSS）── 和聲成分佔全部能量的比例，低 = 打擊/節奏驅動，高 = 旋律/和聲豐富',
+  dynamic_range:   '來源：dynamic_range（dB）── 響度的最大與最小差，低 = 高度壓縮（電子舞曲），高 = 動態豐富（管弦樂）',
+  groove:          '來源：onset_mean ── 平均起音強度，反映音符觸發的密度與力度，低 = 安靜舒緩，高 = 強烈律動',
+  stereo_width:    '來源：stereo_width ── 左右聲道差異比，0 = 單聲道，高 = 寬廣立體音場',
+  timbre_texture:  '來源：zcr_mean（過零率）── 波形正負號切換頻率，低 = 光滑圓潤（弦樂），高 = 粗糙失真（吉他/合成器）',
+  bass_energy:     '來源：contrast_0（最低頻段的頻譜對比）── 低頻峰谷差異，反映低音的存在感與力度',
+  tonality:        '來源：key_strength × Krumhansl-Kessler ── 調性強度與大/小調傾向，低 = 小調憂鬱，高 = 大調明亮',
+  beat_regularity: '來源：beat_regularity（拍間距標準差倒數）── 低 = 拍子自由游移（爵士/即興），高 = 拍子精準穩定（電子/流行）',
+  bandwidth:       '來源：spectral_bandwidth ── 頻譜能量的展開寬度，低 = 音色單一簡潔，高 = 泛音豐富複雜',
+};
+
+// 83 raw dimensions (grouped) — used in the detail panel
+const RAW_DIM_GROUPS = [
+  { label:'空間', dims:[
+    {k:'stereo_width',        zh:'立體寬度',    desc:'L/R 差異能量比 [0,1]'},
+    {k:'stereo_correlation',  zh:'聲道相關性',  desc:'L/R 波形相關係數，高=單聲道，低=寬廣 [-1,1]'},
+  ]},
+  { label:'節奏', dims:[
+    {k:'tempo',               zh:'速度 BPM',    desc:'librosa.beat.beat_track 偵測出的每分鐘拍數'},
+    {k:'beat_regularity',     zh:'節拍規律性',  desc:'拍間距 IBI 的一致性，越高越穩定 [0,1]'},
+    {k:'onset_mean',          zh:'起音均值',    desc:'起音強度包絡的平均，反映整體律動能量'},
+    {k:'onset_std',           zh:'起音標準差',  desc:'起音強度的變化幅度，越高越動態起伏'},
+  ]},
+  { label:'能量結構', dims:[
+    {k:'harmonic_ratio',      zh:'和聲佔比',    desc:'HPSS 分離後和聲成分能量佔比 [0,1]'},
+    {k:'percussive_ratio',    zh:'打擊佔比',    desc:'HPSS 分離後打擊成分能量佔比 [0,1]'},
+  ]},
+  { label:'調性', dims:[
+    {k:'key',                 zh:'根音',        desc:'Krumhansl-Kessler 偵測的調號根音（0=C … 11=B）'},
+    {k:'key_strength',        zh:'調性強度',    desc:'與最佳吻合調式的相關係數，越高越有調性感 [0,1]'},
+  ]},
+  { label:'Chroma（12 半音）', dims:
+    Array.from({length:12},(_,i)=>({
+      k:`chroma_${i}`,
+      zh:['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][i],
+      desc:`半音 ${i} 的能量佔比（chroma_cqt 正規化後）`,
+    }))
+  },
+  { label:'Tonnetz（和聲關係）', dims:[
+    {k:'tonnetz_0', zh:'五度圈 cos', desc:'五度音程軸 cosine 分量'},
+    {k:'tonnetz_1', zh:'五度圈 sin', desc:'五度音程軸 sine 分量'},
+    {k:'tonnetz_2', zh:'大三度 cos', desc:'大三度音程軸 cosine 分量'},
+    {k:'tonnetz_3', zh:'大三度 sin', desc:'大三度音程軸 sine 分量'},
+    {k:'tonnetz_4', zh:'小三度 cos', desc:'小三度音程軸 cosine 分量'},
+    {k:'tonnetz_5', zh:'小三度 sin', desc:'小三度音程軸 sine 分量'},
+  ]},
+  { label:'頻譜形狀', dims:[
+    {k:'spectral_centroid_mean', zh:'頻譜重心 均值',  desc:'頻率加權質心的時間平均，反映音色明暗（Hz）'},
+    {k:'spectral_centroid_std',  zh:'頻譜重心 標準差',desc:'頻譜重心隨時間的波動幅度（Hz）'},
+    {k:'spectral_rolloff',       zh:'滾降頻率',       desc:'累積能量達 85% 的頻率上限（Hz）'},
+    {k:'spectral_bandwidth',     zh:'頻譜帶寬',       desc:'頻譜能量分散程度（Hz），高=音層豐富'},
+  ]},
+  { label:'頻譜對比（7 頻段）', dims:
+    Array.from({length:7},(_,i)=>({
+      k:`contrast_${i}`,
+      zh:`對比 ${i}`,
+      desc:`頻段 ${i} 的峰谷能量差（dB），反映該頻段的音色清晰度`,
+    }))
+  },
+  { label:'MFCC 均值（20 係數）', dims:
+    Array.from({length:20},(_,i)=>({
+      k:`mfcc_mean_${i}`,
+      zh:`MFCC-${i} 均值`,
+      desc:`第 ${i} 個梅爾倒頻譜係數的時間平均，捕捉音色的包絡形狀`,
+    }))
+  },
+  { label:'MFCC 標準差（20 係數）', dims:
+    Array.from({length:20},(_,i)=>({
+      k:`mfcc_std_${i}`,
+      zh:`MFCC-${i} 標準差`,
+      desc:`第 ${i} 個梅爾倒頻譜係數的時間變化幅度，反映音色動態性`,
+    }))
+  },
+  { label:'動態', dims:[
+    {k:'rms_mean',      zh:'RMS 均值',    desc:'均方根音量的時間平均，反映整體響度'},
+    {k:'rms_std',       zh:'RMS 標準差',  desc:'響度隨時間的波動幅度，越高越有起伏感'},
+    {k:'dynamic_range', zh:'動態範圍',    desc:'P95 - P5 響度差（dB），反映音量層次寬度'},
+    {k:'zcr_mean',      zh:'過零率',      desc:'波形每秒過零次數平均，低=低音圓潤，高=高頻尖銳'},
+  ]},
+];
+const DIMS      = Object.keys(DIM_LABELS);
+const CARD_DIMS = ['rhythm_speed','brightness','melody_ratio','groove',
+                   'bass_energy','tonality','stereo_width'];
+const SHORT = {
+  rhythm_speed:'節奏', brightness:'亮度',  melody_ratio:'旋律',
+  dynamic_range:'動態', groove:'律動',      stereo_width:'音場',
+  timbre_texture:'質感', bass_energy:'低頻', tonality:'調性',
+  beat_regularity:'規律性', bandwidth:'豐富度',
+};
+
+// ═══════════════════════════════ INIT ═══════════════════════════════
+async function init() {
+  setupChips('chips-lang');
+  setupChips('chips-genre');
+  setupChips('chips-mood');
+  setupChips('chips-era');
+  setupChips('chips-voice');
+  // close profile menu when clicking outside
+  document.addEventListener('click', (e) => {
+    if(_profileMenuOpen && !document.getElementById('profile-picker').contains(e.target)) {
+      closeProfileMenu();
+    }
+  });
+  await loadProfiles();
+  await loadSongs();
+}
+
+// ═══════════════════════════════ TABS ═══════════════════════════════
+function switchTab(t) {
+  document.querySelectorAll('.tab-content').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById(`tab-${t}`).classList.add('active');
+  document.querySelector(`.tab[data-tab="${t}"]`).classList.add('active');
+  if(t==='playlist') renderPlaylist();
+  if(t==='taste') loadTaste();
+}
+
+// ─── source type tabs (URL vs file) ──────────────────────────────────
+function switchSrc(src) {
+  document.querySelectorAll('.src-tab').forEach(b=>{
+    b.classList.toggle('active', b.dataset.src===src);
+  });
+  document.getElementById('src-url').classList.toggle('hidden', src!=='url');
+  document.getElementById('src-file').classList.toggle('hidden', src!=='file');
+}
+
+// ═══════════════════════════════ PROFILES ════════════════════════════
+async function loadProfiles() {
+  try {
+    const data = await (await fetch('/api/profiles')).json();
+    if(Array.isArray(data) && data.length) {
+      S.profiles = data;
+    }
+  } catch(e) {}
+  renderProfileBars();
+}
+let _profileMenuOpen = false;
+function toggleProfileMenu(e) {
+  if(e) e.stopPropagation();
+  _profileMenuOpen = !_profileMenuOpen;
+  document.getElementById('profile-menu').classList.toggle('hidden', !_profileMenuOpen);
+  document.getElementById('profile-pick-btn').classList.toggle('open', _profileMenuOpen);
+}
+function closeProfileMenu() {
+  _profileMenuOpen = false;
+  document.getElementById('profile-menu').classList.add('hidden');
+  document.getElementById('profile-pick-btn').classList.remove('open');
+}
+function renderProfileBars() {
+  // Update header label
+  const active = S.profiles.find(p=>p.id===S.activeProfile);
+  const label = document.getElementById('profile-pick-label');
+  if(label && active) label.textContent = active.name;
+
+  // Rebuild dropdown menu
+  const menu = document.getElementById('profile-menu');
+  if(!menu) return;
+  menu.innerHTML = '';
+  const hint = document.createElement('div');
+  hint.className = 'pmi-hint';
+  hint.textContent = '雙擊名稱可重新命名';
+  menu.appendChild(hint);
+  const div = document.createElement('div');
+  div.className = 'profile-menu-div';
+  menu.appendChild(div);
+
+  S.profiles.forEach(p => {
+    const row = document.createElement('button');
+    row.className = 'pmi' + (p.id === S.activeProfile ? ' active' : '');
+    row.innerHTML =
+      `<span class="pmi-dot"></span><span class="pmi-name" data-pid="${p.id}">${p.name}</span>`;
+    row.onclick = (e) => {
+      e.stopPropagation();
+      switchProfile(p.id);
+    };
+    // Double-click the name span to rename
+    row.querySelector('.pmi-name').ondblclick = (e) => {
+      e.stopPropagation();
+      startRenameProfile(row.querySelector('.pmi-name'), p.id);
+    };
+    menu.appendChild(row);
+  });
+}
+async function switchProfile(pid) {
+  closeProfileMenu();
+  if(pid === S.activeProfile) return;
+  S.activeProfile = pid;
+  S.recSeenIds.clear();
+  _lastRawFeatures = null;
+  _rawDimOpen = false;
+  const rawBody = document.getElementById('raw-dims-body');
+  const rawArrow = document.getElementById('raw-dims-arrow');
+  if(rawBody) rawBody.classList.add('hidden');
+  if(rawArrow) rawArrow.textContent = '▶ 展開';
+  renderProfileBars();
+  await loadSongs();
+  if(document.getElementById('tab-taste').classList.contains('active')) loadTaste();
+  toast(`已切換至 ${S.profiles.find(p=>p.id===pid)?.name||'設定檔 '+pid}`, 'info');
+}
+function startRenameProfile(nameEl, pid) {
+  const current = S.profiles.find(p=>p.id===pid)?.name || '';
+  const input = document.createElement('input');
+  input.className = 'pmi-rename-input';
+  input.value = current;
+  nameEl.replaceWith(input);
+  input.focus(); input.select();
+  const commit = async () => {
+    const name = input.value.trim() || current;
+    // restore span
+    const span = document.createElement('span');
+    span.className = 'pmi-name';
+    span.dataset.pid = pid;
+    span.textContent = name;
+    span.ondblclick = (e) => { e.stopPropagation(); startRenameProfile(span, pid); };
+    input.replaceWith(span);
+    if(name === current) return;
+    try {
+      await fetch(`/api/profiles/${pid}`, {
+        method:'PUT', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({name})
+      });
+      const p = S.profiles.find(p=>p.id===pid);
+      if(p) p.name = name;
+      renderProfileBars();
+    } catch(e) {}
+  };
+  input.onblur = commit;
+  input.onkeydown = e => {
+    if(e.key==='Enter'){e.preventDefault();commit();}
+    if(e.key==='Escape'){input.value=current;commit();}
+  };
+}
+
+// ═══════════════════════════════ SONGS ═══════════════════════════════
+async function loadSongs() {
+  try {
+    S.songs = await (await fetch(`/api/songs?profile=${S.activeProfile}`)).json();
+    updateCount();
+    renderPlaylist();
+  } catch(e) {}
+}
+function updateCount() {
+  document.getElementById('song-count').textContent = S.songs.length;
+  document.getElementById('locked-cnt').textContent = S.songs.length;
+}
+async function deleteSong(id) {
+  await fetch(`/api/delete-song/${id}`,{method:'DELETE'});
+  S.songs = S.songs.filter(s=>s.id!==id);
+  updateCount(); renderPlaylist(); toast('已移除','info');
+}
+
+// ═══════════════════════════════ ADD SONG (URL) ═══════════════════════
+async function fetchVideoInfo() {
+  const url = document.getElementById('add-url').value.trim();
+  if(!url){toast('請貼上 YouTube 或 Spotify 網址','err');return;}
+  const btn = document.getElementById('fetch-btn');
+  btn.disabled=true; btn.textContent='取得中…';
+  document.getElementById('video-preview').classList.add('hidden');
+  try {
+    const r = await fetch(`/api/youtube-info?url=${encodeURIComponent(url)}`);
+    const d = await r.json();
+    if(d.error){toast(d.error,'err');return;}
+    S.fetchedInfo = d;
+    S.fetchedIsSpotify = !!d.is_spotify;
+    showPreview(d);
+  } catch(e){toast('無法連線，伺服器啟動了嗎？','err');}
+  finally{btn.disabled=false; btn.textContent='取得資訊';}
+}
+function showPreview(info) {
+  const thumb = document.getElementById('prev-thumb');
+  if(info.thumbnail) {
+    thumb.src = info.thumbnail;
+    thumb.style.display = '';
+  } else {
+    thumb.src = '';
+    thumb.style.display = 'none';
+  }
+  document.getElementById('prev-title').textContent = info.title;
+  document.getElementById('prev-meta').textContent =
+    info.duration ? `時長：${fmtDur(info.duration)}` :
+    info.is_spotify ? '來源：Spotify（將自動搜尋 YouTube）' : '';
+  // Hide play button for Spotify (no YouTube ID yet)
+  document.getElementById('prev-play-btn').style.display = info.is_spotify ? 'none' : '';
+  document.getElementById('video-preview').classList.remove('hidden');
+  document.getElementById('add-btn').disabled=false;
+  document.getElementById('add-btn').textContent='＋ 加入歌單';
+}
+function togglePreview() {
+  if(!S.fetchedInfo || S.fetchedIsSpotify) return;
+  openMiniPlayer(S.fetchedInfo.id, S.fetchedInfo.title);
+}
+function startAddSong() {
+  if(S.adding) return;
+  const url = document.getElementById('add-url').value.trim();
+  if(!url){toast('請先取得資訊','err');return;}
+  S.adding=true;
+  document.getElementById('add-btn').disabled=true;
+  document.getElementById('add-btn').textContent='處理中…';
+  closeMiniPlayer();
+  const prog=document.getElementById('add-prog');
+  prog.classList.remove('hidden');
+  setStep('sp-info','active'); setStep('sp-dl',''); setStep('sp-an','');
+  setProg('add-fill','add-msg',10,'正在連線…');
+
+  const es=new EventSource(`/api/add-song?url=${encodeURIComponent(url)}&profile=${S.activeProfile}`);
+  es.onmessage=e=>{
+    const d=JSON.parse(e.data);
+    if(d.step==='info')         {setProg('add-fill','add-msg',d.progress,d.message);}
+    if(d.step==='search')       {setProg('add-fill','add-msg',d.progress,d.message);}
+    if(d.step==='info_done')    {setProg('add-fill','add-msg',d.progress,d.message);
+                                  setStep('sp-info','done');setStep('sp-dl','active');}
+    if(d.step==='download')     {setProg('add-fill','add-msg',d.progress,d.message);}
+    if(d.step==='download_done'){setProg('add-fill','add-msg',d.progress,d.message);
+                                  setStep('sp-dl','done');setStep('sp-an','active');}
+    if(d.step==='analyze')      {setProg('add-fill','add-msg',d.progress,d.message);}
+    if(d.step==='done') {
+      setProg('add-fill','add-msg',100,d.message); setStep('sp-an','done');
+      es.close(); S.adding=false;
+      if(d.song){S.songs.unshift(d.song);} updateCount();
+      toast(`已加入：${d.song?.title||''}`, 'ok');
+      setTimeout(()=>{
+        prog.classList.add('hidden');
+        document.getElementById('add-url').value='';
+        document.getElementById('video-preview').classList.add('hidden');
+        document.getElementById('add-btn').disabled=false;
+        document.getElementById('add-btn').textContent='＋ 加入歌單';
+        S.fetchedInfo=null; S.fetchedIsSpotify=false;
+      },1800);
+    }
+    if(d.step==='error'){
+      es.close(); S.adding=false;
+      setStep('sp-info','err'); setProg('add-fill','add-msg',0,d.message);
+      document.getElementById('add-btn').disabled=false;
+      document.getElementById('add-btn').textContent='＋ 加入歌單';
+      toast(d.message,'err');
+    }
+  };
+  es.onerror=()=>{
+    es.close(); S.adding=false;
+    document.getElementById('add-btn').disabled=false;
+    document.getElementById('add-btn').textContent='＋ 加入歌單';
+    toast('連線中斷','err');
+  };
+}
+
+// ═══════════════════════════════ FILE UPLOAD ═══════════════════════════
+function dzDragOver(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.add('drag-over');
+}
+function dzDragLeave(e) {
+  document.getElementById('drop-zone').classList.remove('drag-over');
+}
+function dzDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag-over');
+  const file = e.dataTransfer?.files?.[0];
+  if(file) processFile(file);
+}
+function handleFileSelect(e) {
+  const file = e.target.files?.[0];
+  if(file) processFile(file);
+  e.target.value = '';
+}
+function processFile(file) {
+  const allowed = ['.mp3','.wav','.flac','.m4a','.aac','.ogg','.opus','.wma'];
+  const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+  if(!allowed.includes(ext)){
+    toast('不支援的格式，請使用 MP3/WAV/FLAC/M4A 等','err'); return;
+  }
+  const baseName = file.name.slice(0, file.name.lastIndexOf('.'));
+  document.getElementById('fc-filename').textContent = file.name;
+  document.getElementById('fc-size').textContent = `${(file.size/1024/1024).toFixed(1)} MB`;
+  document.getElementById('fc-title').value = baseName;
+  document.getElementById('file-card').classList.remove('hidden');
+  document.getElementById('file-acts').classList.remove('hidden');
+  document.getElementById('file-acts').style.display = 'flex';
+  document.getElementById('upload-prog').classList.add('hidden');
+  S.uploadedFileId = null;
+  S._pendingFile = file;
+}
+function clearFileUpload() {
+  S.uploadedFileId = null;
+  S._pendingFile = null;
+  document.getElementById('file-card').classList.add('hidden');
+  document.getElementById('file-acts').classList.add('hidden');
+  document.getElementById('upload-prog').classList.add('hidden');
+}
+async function analyzeUpload() {
+  if(S.uploading) return;
+  const file = S._pendingFile;
+  if(!file){toast('請先選取音訊檔案','err');return;}
+  const title = document.getElementById('fc-title').value.trim() || file.name;
+  S.uploading = true;
+  const btn = document.getElementById('file-analyze-btn');
+  btn.disabled = true; btn.textContent = '上傳中…';
+  document.getElementById('upload-prog').classList.remove('hidden');
+  setStep('usp-up','active'); setStep('usp-an','');
+  setProg('upload-fill','upload-msg',10,'正在上傳檔案…');
+
+  // Step 1: upload file
+  let fileId;
+  try {
+    const fd = new FormData();
+    fd.append('audio', file);
+    const r = await fetch('/api/upload-file', {method:'POST', body:fd});
+    const d = await r.json();
+    if(d.error){throw new Error(d.error);}
+    fileId = d.file_id;
+    S.uploadedFileId = fileId;
+    setStep('usp-up','done'); setStep('usp-an','active');
+    setProg('upload-fill','upload-msg',35,'上傳完成，正在分析…');
+  } catch(e) {
+    S.uploading=false; btn.disabled=false; btn.textContent='分析並加入歌單';
+    setStep('usp-up','err'); toast(`上傳失敗：${e.message}`,'err'); return;
+  }
+
+  // Step 2: analyze via SSE
+  const es = new EventSource(
+    `/api/analyze-upload?file_id=${encodeURIComponent(fileId)}&title=${encodeURIComponent(title)}&profile=${S.activeProfile}`);
+  es.onmessage = ev => {
+    const d = JSON.parse(ev.data);
+    if(d.step==='analyze') {setProg('upload-fill','upload-msg',d.progress,d.message);}
+    if(d.step==='done') {
+      setProg('upload-fill','upload-msg',100,'分析完成！');
+      setStep('usp-an','done');
+      es.close(); S.uploading=false; S._pendingFile=null; S.uploadedFileId=null;
+      if(d.song){S.songs.unshift(d.song);} updateCount();
+      toast(`已加入：${d.song?.title||title}`,'ok');
+      setTimeout(()=>{
+        clearFileUpload();
+        btn.disabled=false; btn.textContent='分析並加入歌單';
+      },1800);
+    }
+    if(d.step==='error') {
+      es.close(); S.uploading=false;
+      setStep('usp-an','err'); setProg('upload-fill','upload-msg',0,d.message);
+      btn.disabled=false; btn.textContent='分析並加入歌單';
+      toast(d.message,'err');
+    }
+  };
+  es.onerror = () => {
+    es.close(); S.uploading=false;
+    btn.disabled=false; btn.textContent='分析並加入歌單';
+    toast('連線中斷','err');
+  };
+}
+
+// ═══════════════════════════════ PLAYLIST IMPORT ═══════════════════════
+function togglePlImport() {
+  const hdr=document.getElementById('pl-hdr');
+  const body=document.getElementById('pl-body');
+  hdr.classList.toggle('open');
+  body.classList.toggle('hidden');
+}
+async function fetchPlaylist() {
+  const url=document.getElementById('pl-url').value.trim();
+  if(!url){toast('請貼上播放清單網址','err');return;}
+  const btn=document.getElementById('pl-fetch-btn');
+  btn.disabled=true; btn.textContent='讀取中…';
+  try {
+    const r=await fetch(`/api/playlist-info?url=${encodeURIComponent(url)}`);
+    const d=await r.json();
+    if(d.error){toast(d.error,'err');return;}
+    S.plType = d.type;
+    S.plSelected = new Set();
+    if(d.type === 'spotify_playlist') {
+      S.plTracks = d.tracks;
+      S.plVideos = [];
+      renderPlList(d.title, d.tracks, 'spotify_playlist');
+    } else {
+      S.plVideos = d.videos;
+      S.plTracks = [];
+      renderPlList(d.title, d.videos, 'youtube_playlist');
+    }
+  } catch(e){toast('讀取失敗','err');}
+  finally{btn.disabled=false; btn.textContent='讀取清單';}
+}
+function renderPlList(title, items, type) {
+  document.getElementById('pl-name').textContent = title;
+  document.getElementById('pl-cnt').textContent  = `共 ${items.length} 首`;
+  const list = document.getElementById('pl-list');
+  if(type === 'spotify_playlist') {
+    list.innerHTML = items.map((t,i)=>`
+      <label class="pl-item">
+        <input type="checkbox" data-i="${i}" onchange="plChkChange()">
+        <div class="pl-thumb-ph">🎵</div>
+        <span class="pl-title">${esc(t.display)}</span>
+        <span class="pl-dur"></span>
+      </label>`).join('');
+  } else {
+    list.innerHTML = items.map((v,i)=>`
+      <label class="pl-item">
+        <input type="checkbox" data-i="${i}" onchange="plChkChange()">
+        <img class="pl-thumb" src="${esc(v.thumbnail)}" alt="" loading="lazy">
+        <span class="pl-title">${esc(v.title)}</span>
+        <button class="pl-play-btn" title="試聽"
+          onclick="event.preventDefault();event.stopPropagation();openMiniPlayer('${esc(v.id)}','${esc(v.title)}')">▶</button>
+        <span class="pl-dur">${v.duration?fmtDur(v.duration):''}</span>
+      </label>`).join('');
+  }
+  document.getElementById('pl-preview').classList.remove('hidden');
+  document.getElementById('batch-prog').classList.add('hidden');
+  updatePlSel();
+}
+function plChkChange() {
+  S.plSelected.clear();
+  document.querySelectorAll('#pl-list input[type=checkbox]:checked').forEach(cb=>{
+    S.plSelected.add(parseInt(cb.dataset.i));
+  });
+  updatePlSel();
+}
+function plToggleAll(cb) {
+  document.querySelectorAll('#pl-list input[type=checkbox]').forEach(c=>{
+    c.checked=cb.checked;
+    const i=parseInt(c.dataset.i);
+    if(cb.checked) S.plSelected.add(i); else S.plSelected.delete(i);
+  });
+  updatePlSel();
+}
+function updatePlSel() {
+  const n=S.plSelected.size;
+  document.getElementById('pl-sel-cnt').textContent=`已選 ${n} 首`;
+  document.getElementById('pl-add-btn').disabled=(n===0);
+}
+function startBatchAdd() {
+  if(S.plSelected.size===0) return;
+  document.getElementById('pl-preview').classList.add('hidden');
+  const prog=document.getElementById('batch-prog');
+  prog.classList.remove('hidden');
+  document.getElementById('batch-log').innerHTML='';
+  document.getElementById('batch-overall').textContent='準備中…';
+  setProg('batch-fill','',0,'');
+
+  if(S.plType === 'spotify_playlist') {
+    // Spotify: POST tracks → get batch_id → SSE run-batch
+    const tracks = Array.from(S.plSelected).map(i=>({
+      query: S.plTracks[i].search_query,
+      title: S.plTracks[i].display,
+    }));
+    fetch('/api/create-batch',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({tracks}),
+    })
+    .then(r=>r.json())
+    .then(({batch_id})=>{
+      const es=new EventSource(`/api/run-batch?id=${encodeURIComponent(batch_id)}&profile=${S.activeProfile}`);
+      handleBatchEvents(es, tracks.length);
+    })
+    .catch(()=>toast('建立批次失敗','err'));
+  } else {
+    // YouTube: direct IDs
+    const ids=Array.from(S.plSelected).map(i=>S.plVideos[i].id).join(',');
+    const es=new EventSource(`/api/batch-add?ids=${encodeURIComponent(ids)}&profile=${S.activeProfile}`);
+    handleBatchEvents(es, S.plSelected.size);
+  }
+}
+function handleBatchEvents(es, total) {
+  es.onmessage=e=>{
+    const d=JSON.parse(e.data);
+    if(d.type==='start') {
+      document.getElementById('batch-overall').textContent=`0 / ${d.total} 首`;
+    }
+    if(d.type==='song_info'||d.type==='song_search') {
+      if(d.thumbnail) document.getElementById('batch-thumb').src=d.thumbnail;
+      document.getElementById('batch-title').textContent=d.title||d.query||'';
+      if(d.index!=null){
+        const pct=Math.round((d.index)/total*100);
+        document.getElementById('batch-fill').style.width=pct+'%';
+      }
+    }
+    if(d.type==='song_done') {
+      if(d.song) S.songs.unshift(d.song);
+      updateCount();
+      const pct=Math.round((d.index+1)/total*100);
+      document.getElementById('batch-fill').style.width=pct+'%';
+      document.getElementById('batch-overall').textContent=
+        `${d.index+1} / ${total} 首完成`;
+      addBatchLog('ok','✓ '+(d.song?.title||''));
+    }
+    if(d.type==='song_skip') {
+      addBatchLog('skip','— 已在歌單中');
+      const done=document.getElementById('batch-log').querySelectorAll('.blog-item').length;
+      document.getElementById('batch-fill').style.width=Math.round(done/total*100)+'%';
+    }
+    if(d.type==='song_error') {
+      addBatchLog('err','✗ 失敗：'+d.message);
+    }
+    if(d.type==='batch_done') {
+      es.close();
+      document.getElementById('batch-fill').style.width='100%';
+      document.getElementById('batch-overall').textContent='批次完成！';
+      toast('批次加入完成','ok');
+      document.getElementById('pl-url').value='';
+    }
+    if(d.type==='error') {
+      es.close(); toast(d.message,'err');
+    }
+  };
+  es.onerror=()=>{es.close(); toast('批次連線中斷','err');};
+}
+function addBatchLog(type,msg) {
+  const log=document.getElementById('batch-log');
+  const el=document.createElement('div');
+  el.className=`blog-item blog-${type}`;
+  el.textContent=msg;
+  log.appendChild(el);
+  log.scrollTop=log.scrollHeight;
+}
+
+// ═══════════════════════════════ PLAYLIST TAB ═══════════════════════
+function renderPlaylist() {
+  const grid=document.getElementById('pl-grid');
+  const empty=document.getElementById('pl-empty');
+  if(S.songs.length===0){grid.innerHTML='';empty.classList.remove('hidden');return;}
+  empty.classList.add('hidden');
+  grid.innerHTML=S.songs.map(s=>{
+    const n=s.normalized||{};
+    const bars=CARD_DIMS.map(d=>`
+      <div class="mbr">
+        <span class="mbl">${SHORT[d]}</span>
+        <div class="mbt"><div class="mbf" style="width:${n[d]||0}%"></div></div>
+      </div>`).join('');
+    const tags=(s.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
+    const thumbHtml = s.thumbnail
+      ? `<img class="sc-thumb" src="${esc(s.thumbnail)}" alt="" loading="lazy">`
+      : `<div class="sc-thumb-ph">🎵</div>`;
+    // Play button: only for YouTube-backed songs (not local files)
+    const ytId = s.youtube_id && !s.youtube_id.startsWith('local_') ? s.youtube_id : null;
+    const playBtn = ytId
+      ? `<button class="sc-play" title="試聽"
+           onclick="openMiniPlayer('${esc(ytId)}','${esc(s.title)}')">▶</button>`
+      : '';
+    return `
+    <div class="sc">
+      ${thumbHtml}
+      <div class="sc-body">
+        <div class="sc-title">${esc(s.title)}</div>
+        <div class="sc-meta"><span class="bpm">♩ ${s.bpm} BPM</span>${tags}</div>
+        <div class="mb">${bars}</div>
+      </div>
+      ${playBtn}
+      <button class="sc-del" onclick="deleteSong('${s.id}')" title="移除">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════ TASTE TAB ═══════════════════════════
+async function loadTaste() {
+  if(S.songs.length<3){
+    document.getElementById('taste-locked').classList.remove('hidden');
+    document.getElementById('taste-content').classList.add('hidden');
+    return;
+  }
+  document.getElementById('taste-locked').classList.add('hidden');
+  document.getElementById('taste-content').classList.remove('hidden');
+  try {
+    const r = await fetch(`/api/analyze-taste?profile=${S.activeProfile}`);
+    const d = await r.json();
+    if(d.error){toast(d.error,'err');return;}
+    renderTasteProfile(d);
+  } catch(e){toast('分析失敗','err');}
+}
+// ── 83-dim raw features panel ─────────────────────────────────────────────
+let _rawDimOpen = false;
+let _lastRawFeatures = null;   // array of song raw feature dicts
+
+async function toggleRawDims() {
+  _rawDimOpen = !_rawDimOpen;
+  const body  = document.getElementById('raw-dims-body');
+  const arrow = document.getElementById('raw-dims-arrow');
+  body.classList.toggle('hidden', !_rawDimOpen);
+  arrow.textContent = _rawDimOpen ? '▼ 收起' : '▶ 展開';
+  if (!_rawDimOpen) return;
+
+  // Fetch on demand if not yet loaded
+  if (!_lastRawFeatures) {
+    document.getElementById('raw-dims-content').innerHTML =
+      '<div style="color:var(--muted);font-size:12px;padding:8px 0">載入中…</div>';
+    try {
+      const r = await fetch(`/api/songs-raw?profile=${S.activeProfile}`);
+      if (r.ok) _lastRawFeatures = await r.json();
+    } catch(e) {}
+  }
+
+  if (_lastRawFeatures && _lastRawFeatures.length > 0) {
+    renderRawDims(_lastRawFeatures);
+  } else {
+    document.getElementById('raw-dims-content').innerHTML =
+      '<div style="color:var(--muted);font-size:12px;padding:8px 0">' +
+      '尚無資料。新加入的歌曲（83 維格式）才會顯示明細。</div>';
+  }
+}
+
+function renderRawDims(allRaw) {
+  // Compute per-dim averages across library
+  const avg = {};
+  for (const grp of RAW_DIM_GROUPS) {
+    for (const {k} of grp.dims) {
+      const vals = allRaw.map(f => f[k] ?? null).filter(v => v !== null);
+      avg[k] = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+    }
+  }
+
+  // Normalization helpers for display bars
+  const _norm = (k, v) => {
+    if (v === null) return 0;
+    if (k === 'tempo')                 return Math.min(1, Math.max(0, (v-40)/220));
+    if (k === 'stereo_correlation')    return (v+1)/2;
+    if (k.startsWith('tonnetz_'))      return (v+1)/2;
+    if (k === 'spectral_centroid_mean')return Math.min(1, Math.max(0, (v-200)/7800));
+    if (k === 'spectral_centroid_std') return Math.min(1, Math.max(0, v/3000));
+    if (k === 'spectral_rolloff')      return Math.min(1, Math.max(0, v/11025));
+    if (k === 'spectral_bandwidth')    return Math.min(1, Math.max(0, (v-200)/4800));
+    if (k.startsWith('contrast_'))     return Math.min(1, Math.max(0, v/80));
+    if (k === 'mfcc_mean_0')           return Math.min(1, Math.max(0, (v+800)/750));
+    if (k.startsWith('mfcc_mean_'))    return Math.min(1, Math.max(0, (v+120)/240));
+    if (k.startsWith('mfcc_std_0'))    return Math.min(1, Math.max(0, v/120));
+    if (k.startsWith('mfcc_std_'))     return Math.min(1, Math.max(0, v/50));
+    if (k === 'rms_mean')              return Math.min(1, Math.max(0, v/0.3));
+    if (k === 'rms_std')               return Math.min(1, Math.max(0, v/0.15));
+    if (k === 'dynamic_range')         return Math.min(1, Math.max(0, v/50));
+    if (k === 'zcr_mean')              return Math.min(1, Math.max(0, v/0.25));
+    return Math.min(1, Math.max(0, v));  // default: already [0,1]
+  };
+
+  const _fmt = (k, v) => {
+    if (v === null) return '–';
+    if (k === 'key') return ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][Math.round(v)%12];
+    if (k === 'tempo') return v.toFixed(1)+' BPM';
+    if (['spectral_centroid_mean','spectral_centroid_std',
+         'spectral_rolloff','spectral_bandwidth'].includes(k)) return v.toFixed(0)+' Hz';
+    if (k.startsWith('contrast_')) return v.toFixed(1)+' dB';
+    if (k === 'dynamic_range')     return v.toFixed(1)+' dB';
+    if (k === 'rms_mean' || k === 'rms_std') return v.toFixed(4);
+    return v.toFixed(3);
+  };
+
+  const el = document.getElementById('raw-dims-content');
+  el.innerHTML = RAW_DIM_GROUPS.map(grp => `
+    <div class="rdg">
+      <div class="rdg-title">${esc(grp.label)}</div>
+      ${grp.dims.map(({k, zh, desc}) => {
+        const v = avg[k];
+        const n = _norm(k, v);
+        return `
+        <div>
+          <div class="rdr">
+            <span class="rdl" title="${esc(desc)}">${esc(zh)}</span>
+            <div class="rdt"><div class="rdf" style="width:${(n*100).toFixed(1)}%"></div></div>
+            <span class="rdv">${esc(_fmt(k, v))}</span>
+          </div>
+          <div class="rdd">${esc(desc)}</div>
+        </div>`;
+      }).join('')}
+    </div>`).join('');
+}
+
+// ── musical style inference display ───────────────────────────────────────
+const _STYLE_LABELS = {
+  arrangement:  '🎸 編制傾向',
+  harmony:      '🎼 和聲複雜度',
+  timbre:       '🎹 音色特質',
+  bass_pref:    '🔊 低頻偏好',
+  production:   '🎚 製作風格',
+  rhythm_feel:  '🥁 節拍特性',
+  energy:       '⚡ 能量感',
+};
+const KEY_NAMES_JS = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+function renderMusicalStyle(style, insights) {
+  const panel = document.getElementById('style-panel');
+  const content = document.getElementById('style-content');
+  if (!panel || !content) return;
+
+  const display = (style && style.display) ? style.display : {};
+
+  // ── Section A: style.display rows (from infer_musical_style) ──
+  const styleRows = Object.entries(_STYLE_LABELS)
+    .filter(([k]) => display[k])
+    .map(([k, label]) => `
+      <div style="padding:6px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:10.5px;color:var(--muted);margin-bottom:2px">${label}</div>
+        <div style="font-size:12.5px;color:var(--text)">${esc(display[k])}</div>
+      </div>`).join('');
+
+  // ── Section B: numerical insights (from compute_taste_insights) ──
+  let insightRows = '';
+  if (insights && insights.sample_count) {
+    const ins = insights;
+    const KEY_NAMES = KEY_NAMES_JS;
+    const majorPct  = Math.round(ins.major_tendency * 100);
+    const modeLabel = majorPct >= 60 ? `大調為主（${majorPct}%）`
+                    : majorPct <= 40 ? `小調為主（${100-majorPct}%）`
+                    : '大小調均衡';
+    const ens = ins.ensemble_score >= 0.6 ? '豐富編曲（樂團 / 管弦）'
+              : ins.ensemble_score <= 0.35 ? '清淡編曲（獨奏 / 清唱）'
+              : '中等編制';
+    const harm = ins.chroma_entropy >= 0.70 ? '豐富（爵士 / 古典調式）'
+               : ins.chroma_entropy >= 0.52 ? '適中（流行標準進行）'
+               : '簡潔（單調性 / 流行）';
+    const beat = ins.beat_regularity >= 0.72 ? '精準穩定（電子 / 舞曲）'
+               : ins.beat_regularity <= 0.45 ? '自由游走（爵士 / 即興）'
+               : '中等穩定（流行 / 搖滾）';
+    const perc = ins.percussive_ratio >= 0.52 ? '節奏驅動（鼓點主導）'
+               : ins.percussive_ratio <= 0.35 ? '旋律主導（和聲豐富）'
+               : '旋律節奏均衡';
+    const keyLabel = KEY_NAMES[ins.preferred_key || 0] + ' 調'
+                   + (ins.key_consistency >= 0.35 ? `（${Math.round(ins.key_consistency*100)}% 集中度）` : '');
+    const tempoLabel = `${ins.tempo_avg.toFixed(0)} BPM（±${ins.tempo_std.toFixed(0)}）`;
+
+    // Inferred genre hints
+    const hints = [];
+    if (ins.chroma_entropy >= 0.68 && ins.beat_regularity <= 0.55) hints.push('爵士 / 即興');
+    if (ins.chroma_entropy >= 0.65 && ins.ensemble_score >= 0.65)  hints.push('古典 / 管弦');
+    if (ins.beat_regularity >= 0.75 && ins.percussive_ratio >= 0.45) hints.push('電子舞曲');
+    if (ins.beat_regularity >= 0.65 && ins.ensemble_score <= 0.45) hints.push('民謠 / 清唱');
+    if (ins.major_tendency >= 0.65 && ins.beat_regularity >= 0.6)  hints.push('流行');
+    if (ins.major_tendency <= 0.40 && ins.chroma_entropy >= 0.55)  hints.push('搖滾 / 另類');
+    if (ins.ensemble_score <= 0.30 && ins.beat_regularity <= 0.5)  hints.push('民謠 / 原聲');
+
+    const hintHtml = hints.length
+      ? `<div style="grid-column:1/-1;margin-top:6px;padding:7px 12px;
+              background:var(--accent-glow);border-radius:var(--rs);font-size:12px;color:#a78bfa">
+           <strong>推論偏好風格：</strong>${esc(hints.join(' · '))}
+         </div>` : '';
+
+    insightRows = `
+      <div style="margin-top:12px;padding-top:10px;border-top:2px solid var(--border);
+                  display:grid;grid-template-columns:1fr 1fr;gap:0 16px">
+        ${[
+          ['🎵 調性偏好', modeLabel],
+          ['🎸 音樂編制', ens],
+          ['🎼 和聲豐富度', harm],
+          ['🥁 節拍型態', beat],
+          ['⚡ 能量結構', perc],
+          ['🎵 偏好根音', keyLabel],
+          ['⏱ 速度範圍', tempoLabel],
+        ].map(([l,v])=>`
+          <div style="padding:5px 0;border-bottom:1px solid var(--border)">
+            <div style="font-size:10.5px;color:var(--muted);margin-bottom:2px">${l}</div>
+            <div style="font-size:12.5px;color:var(--text)">${esc(v)}</div>
+          </div>`).join('')}
+        ${hintHtml}
+        <div style="grid-column:1/-1;padding-top:4px;font-size:10.5px;color:var(--dim)">
+          基於 ${ins.sample_count} 首新格式歌曲（83 維特徵）推導
+        </div>
+      </div>`;
+  }
+
+  const anyContent = styleRows || insightRows;
+  if (anyContent) {
+    content.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px">${styleRows}</div>${insightRows}`;
+    panel.style.display = '';
+  } else {
+    panel.style.display = 'none';
+  }
+}
+
+function renderTasteProfile(d) {
+  const {profile,std,consistency}=d;
+  // Show inferred musical style + insights card
+  renderMusicalStyle(d.style || {}, d.insights || {});
+  const circ=2*Math.PI*44;
+  const fill=document.getElementById('g-fill');
+  fill.style.strokeDashoffset=circ;
+  setTimeout(()=>{fill.style.strokeDashoffset=circ-(consistency/100)*circ;},60);
+  fill.style.stroke=scoreCol(consistency);
+  document.getElementById('g-num').textContent=Math.round(consistency);
+  const grd=document.getElementById('g-grade');
+  grd.textContent=consGrade(consistency); grd.style.color=scoreCol(consistency);
+
+  document.getElementById('prof-txt').innerHTML=buildProfSummary(profile);
+
+  document.getElementById('dim-rows').innerHTML=DIMS.map(dim=>{
+    const v=profile[dim]||0, s=std[dim]||0;
+    const lo=Math.max(0,v-s), sw=Math.min(100,2*s);
+    return `
+    <div>
+      <div class="dr">
+        <span class="dl">${DIM_LABELS[dim]}</span>
+        <div class="dt">
+          <div class="df" style="width:${v}%"></div>
+          <div class="ds" style="left:${lo}%;width:${sw}%"></div>
+        </div>
+        <span class="dv">${Math.round(v)}</span>
+      </div>
+      <div class="dd">${DIM_DESCS[dim]}</div>
+    </div>`;
+  }).join('');
+}
+function buildProfSummary(p) {
+  const rows=[
+    [`節奏`, p.rhythm_speed>65?'偏好快節奏，充滿活力':p.rhythm_speed<35?'偏好慢節奏，輕鬆悠閒':'中板節奏，不疾不徐'],
+    [`音色`, p.brightness>65?'喜愛明亮高頻的音色':p.brightness<35?'偏好溫暖低沉的音色':'音色均衡'],
+    [`旋律`, p.melody_ratio>65?'重視旋律性與和聲層次':p.melody_ratio<35?'偏好節奏驅動、打擊感強':'旋律與節奏平衡'],
+    [`動態`, p.dynamic_range>65?'享受豐富的音量起伏':p.dynamic_range<35?'偏好緊湊壓縮的能量感':'動態適中'],
+    [`音場`, p.stereo_width>60?'喜愛開闊寬廣的立體音場':p.stereo_width<30?'偏好集中直接的音場':'音場寬度居中'],
+  ];
+  return rows.map(([k,v])=>`<p><strong>${k}：</strong>${v}</p>`).join('');
+}
+
+// ── chip filter logic ──────────────────────────────────────────────
+function setupChips(groupId) {
+  document.getElementById(groupId).addEventListener('click',e=>{
+    const chip=e.target.closest('.chip');
+    if(!chip) return;
+    document.getElementById(groupId).querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+    chip.classList.add('on');
+  });
+}
+function getChipVal(groupId) {
+  const el=document.getElementById(groupId).querySelector('.chip.on');
+  return el ? el.dataset.v : '';
+}
+
+// ── generate real song recommendations ────────────────────────────
+let _recSortMode = 'order';   // current active sort
+let _recInsertCt = 0;         // insertion counter for order sort
+
+function generateRecs() {
+  if(S.recRunning) return;
+  S.recRunning=true;
+  _recInsertCt=0;
+  _recSortMode='order';
+  // Reset sort bar active state
+  document.querySelectorAll('.rec-sort-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.sort==='order');
+  });
+  document.getElementById('rec-sort-bar').classList.add('hidden');
+  document.getElementById('rec-count-txt').textContent='';
+
+  const lang    = getChipVal('chips-lang');
+  const genre   = getChipVal('chips-genre');
+  const mood    = getChipVal('chips-mood');
+  const era     = getChipVal('chips-era');
+  const voice   = getChipVal('chips-voice');
+  const include = document.getElementById('rec-include').value.trim();
+  const exclude = document.getElementById('rec-exclude').value.trim();
+  const btn     = document.getElementById('rec-btn');
+  btn.disabled=true; btn.textContent='分析中…';
+  document.getElementById('rec-status-txt').textContent='';
+  const area=document.getElementById('rec-area');
+  area.classList.remove('hidden');
+  document.getElementById('rec-fill').style.width='0%';
+  document.getElementById('rec-groups').innerHTML=
+    `<div id="rec-init-msg" style="color:var(--muted);font-size:13px;padding:8px 0">正在蒐集候選歌曲，請稍候…</div>`;
+
+  const es=new EventSource(
+    `/api/recommend-audio?language=${encodeURIComponent(lang)}`+
+    `&genre=${encodeURIComponent(genre)}&mood=${encodeURIComponent(mood)}`+
+    `&era=${encodeURIComponent(era)}&voice=${encodeURIComponent(voice)}`+
+    `&exclude=${encodeURIComponent(exclude)}&include=${encodeURIComponent(include)}`+
+    `&profile=${S.activeProfile}`);
+
+  es.onmessage=e=>{
+    const d=JSON.parse(e.data);
+
+    if(d.type==='status') {
+      document.getElementById('rec-status-txt').textContent=d.message||'';
+      if(d.progress!=null)
+        document.getElementById('rec-fill').style.width=d.progress+'%';
+      if(d.total) {
+        const init=document.getElementById('rec-init-msg');
+        if(init) init.textContent=d.message||'';
+      }
+    }
+
+    if(d.type==='progress') {
+      document.getElementById('rec-fill').style.width=d.progress+'%';
+      const simTxt = d.best_sim>0 ? `，最高相似度 ${d.best_sim}%` : '';
+      document.getElementById('rec-status-txt').textContent=
+        `分析候選歌曲 ${d.analyzed} / ${d.total}（已通過 ${d.passed} 首${simTxt}）`;
+    }
+
+    if(d.type==='result') {
+      const v=d.video;
+      if(S.recSeenIds.has(v.id)) return;
+      // Client-side language second pass (catches Latin-title songs the server may miss)
+      if(lang && !_titleMatchesLanguage(v.title, lang)) return;
+      S.recSeenIds.add(v.id);
+      const init=document.getElementById('rec-init-msg');
+      if(init) init.remove();
+      // Show sort bar on first result
+      document.getElementById('rec-sort-bar').classList.remove('hidden');
+      // Ensure grid container exists
+      let grid=document.getElementById('rec-audio-grid');
+      if(!grid){
+        const wrap=document.getElementById('rec-groups');
+        wrap.innerHTML='<div class="rec-group-hdr">✦ 音訊相似度推薦</div>';
+        grid=document.createElement('div');
+        grid.id='rec-audio-grid';
+        grid.className='rec-grid';
+        wrap.appendChild(grid);
+      }
+      const order = ++_recInsertCt;
+      grid.insertAdjacentHTML('beforeend', recCardHtml(v, order));
+      // Re-apply active sort
+      _applySort(grid);
+      // Update count
+      document.getElementById('rec-count-txt').textContent=`共 ${_recInsertCt} 首`;
+    }
+
+    if(d.type==='done') {
+      es.close(); S.recRunning=false;
+      btn.disabled=false; btn.textContent='重新生成';
+      document.getElementById('rec-fill').style.width='100%';
+      const seenTxt = S.recSeenIds.size>0
+        ? `（已累積 ${S.recSeenIds.size} 首去重記錄）` : '';
+      document.getElementById('rec-status-txt').textContent=
+        `完成：分析 ${d.total_analyzed} 首，通過 ${d.total_passed} 首 ${seenTxt}`;
+      if(!document.querySelector('.rec-card'))
+        document.getElementById('rec-groups').innerHTML=
+          `<div class="empty" style="padding:24px">未找到符合條件的歌曲，請調整篩選條件後重試</div>`;
+    }
+
+    if(d.type==='error') {
+      es.close(); S.recRunning=false;
+      btn.disabled=false; btn.textContent='生成推薦歌曲';
+      toast(d.message,'err');
+    }
+  };
+  es.onerror=()=>{
+    es.close(); S.recRunning=false;
+    btn.disabled=false; btn.textContent='生成推薦歌曲';
+    toast('連線中斷','err');
+  };
+}
+
+function _titleMatchesLanguage(title, lang) {
+  if(!lang || !title) return true;
+  const hasHiragana = /[぀-ゟ]/.test(title);
+  const hasKatakana = /[゠-ヿ]/.test(title);
+  const hasJpKana   = hasHiragana || hasKatakana;
+  const hasHangul   = /[가-힯ᄀ-ᇿ]/.test(title);
+  const hasCJK      = /[一-鿿]/.test(title);
+  const hasChinese  = hasCJK && !hasJpKana;
+  if(lang==='ja')  return !hasChinese && !hasHangul;
+  if(lang==='ko')  return !hasChinese && !hasJpKana;
+  if(lang==='zh' || lang==='yue') return !hasJpKana && !hasHangul;
+  if(['en','fr','es','de','it','pt'].includes(lang))
+    return !hasCJK && !hasJpKana && !hasHangul;
+  return true;
+}
+
+function _applySort(grid) {
+  if(!grid) grid=document.getElementById('rec-audio-grid');
+  if(!grid) return;
+  const cards=[...grid.querySelectorAll('.rec-card')];
+  if(_recSortMode==='sim')
+    cards.sort((a,b)=>parseFloat(b.dataset.sim||0)-parseFloat(a.dataset.sim||0));
+  else if(_recSortMode==='title')
+    cards.sort((a,b)=>(a.dataset.title||'').localeCompare(b.dataset.title||''));
+  else  // 'order'
+    cards.sort((a,b)=>parseInt(a.dataset.order||0)-parseInt(b.dataset.order||0));
+  cards.forEach(c=>grid.appendChild(c));
+}
+
+function sortRecs(mode) {
+  _recSortMode=mode;
+  document.querySelectorAll('.rec-sort-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.sort===mode);
+  });
+  _applySort();
+}
+
+function clearRecHistory() {
+  const n = S.recSeenIds.size;
+  S.recSeenIds.clear();
+  document.getElementById('rec-status-txt').textContent='';
+  toast(`已清除 ${n} 首去重記錄，下次生成將重新搜尋`, 'info');
+}
+
+// stores deviations data per video id for the analysis modal
+const _recAnalysisData = {};
+
+function recCardHtml(v, order) {
+  // cache analysis data if server provided it
+  if(v.deviations) _recAnalysisData[v.id] = v;
+  const simBadge = v.similarity!=null
+    ? `<span class="rec-sim-badge">${v.similarity}%</span>` : '';
+  const titleKey = (v.title||'').toLowerCase();
+  const infoStyle = v.deviations ? '' : ' style="display:none"';
+  return `
+  <div class="rec-card" id="rc-${esc(v.id)}"
+       data-sim="${v.similarity||0}" data-order="${order||0}"
+       data-title="${esc(titleKey)}">
+    <div class="rec-thumb-wrap">
+      <img class="rec-thumb" src="${esc(v.thumbnail)}" alt="" loading="lazy">
+      <button class="rec-play" title="試聽"
+              onclick="openMiniPlayer('${esc(v.id)}','${esc(v.title)}')">▶</button>
+    </div>
+    <div class="rec-body">
+      <div class="rec-title">${esc(v.title)}</div>
+      <div class="rec-dur">${v.duration?fmtDur(v.duration):''}${simBadge}</div>
+      <div class="rec-acts">
+        <a class="btn-ym" href="${esc(v.youtube_music_url)}" target="_blank" rel="noopener">
+          ▶ YT Music
+        </a>
+        <button class="rec-info-btn"${infoStyle}
+                onclick="openRecModal('${esc(v.id)}')">詳細分析</button>
+        <button class="rec-add-btn" onclick="addFromRec('${esc(v.id)}','${esc(v.title)}')">
+          ＋ 加入
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function openRecModal(vid) {
+  const v = _recAnalysisData[vid];
+  if(!v) return;
+
+  document.getElementById('rm-thumb').src = v.thumbnail || '';
+  document.getElementById('rm-title').textContent = v.title || '';
+  document.getElementById('rm-sim').textContent =
+    v.similarity != null ? `音訊相似度：${v.similarity}%` : '';
+
+  // ── Why recommended ──────────────────────────────────────────────────
+  const devs = v.deviations || [];
+  const simPct = v.similarity || 0;
+  const simDesc = simPct >= 85 ? '極高度相似' : simPct >= 70 ? '高度相似'
+                : simPct >= 55 ? '相當相似'   : simPct >= 40 ? '部分相似' : '低相似度';
+  const topMatch = [...devs].sort((a,b)=>a.deviation-b.deviation).slice(0,3);
+  const topMatchTxt = topMatch.map(d=>`${d.label}（差距 ${d.deviation} 分）`).join('、');
+  const mismatched = devs.filter(d=>d.deviation>=15);
+  const topDiff = [...devs].sort((a,b)=>b.deviation-a.deviation).slice(0,2);
+  const topDiffTxt = topDiff.map(d=>`${d.label}（${d.direction} ${d.deviation} 分）`).join('、');
+
+  let whyHtml = `<div class="why-title">為什麼推薦這首歌？</div>`;
+  whyHtml += `<strong>音訊相似度 ${simPct}%（${simDesc}）</strong>——本曲的 83 維音訊特徵向量與您歌單品味中心的余弦相似度。`;
+  if(topMatch.length)
+    whyHtml += `<br>✦ 最相符的維度：${topMatchTxt}。`;
+  if(mismatched.length === 0)
+    whyHtml += `<br>✦ 所有 11 個維度均在匹配範圍內，整體契合度高。`;
+  else
+    whyHtml += `<br>✦ 主要差異：${topDiffTxt}，可作為接觸新風格的參考。`;
+  document.getElementById('rm-why').innerHTML = whyHtml;
+
+  // ── Dimension comparison bars ─────────────────────────────────────────
+  document.getElementById('rm-devs').innerHTML = devs.map(dev => {
+    const badge = dev.deviation < 15 ? 'bdg-ok' : dev.direction==='偏高' ? 'bdg-h' : 'bdg-l';
+    const btxt  = dev.deviation < 15 ? '匹配' : dev.direction;
+    return `
+    <div class="dev-row">
+      <span class="dev-lbl">${esc(dev.label)}</span>
+      <div class="dev-bars">
+        <div class="dev-br">
+          <span style="width:22px">本曲</span>
+          <div class="dev-bt"><div class="dev-bf bf-s" style="width:${dev.song_value}%"></div></div>
+          <span style="width:22px;text-align:right">${Math.round(dev.song_value)}</span>
+        </div>
+        <div class="dev-br">
+          <span style="width:22px">偏好</span>
+          <div class="dev-bt"><div class="dev-bf bf-p" style="width:${dev.profile_value}%"></div></div>
+          <span style="width:22px;text-align:right">${Math.round(dev.profile_value)}</span>
+        </div>
+      </div>
+      <span class="dev-bdg ${badge}">${btxt}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('rec-modal-overlay').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeRecModal() {
+  document.getElementById('rec-modal-overlay').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+function addFromRec(vid, title) {
+  const card=document.getElementById(`rc-${vid}`);
+  const btn=card?.querySelector('.rec-add-btn');
+  if(btn){ btn.disabled=true; btn.textContent='處理中…'; }
+
+  const url=`https://www.youtube.com/watch?v=${vid}`;
+  const es=new EventSource(`/api/add-song?url=${encodeURIComponent(url)}&profile=${S.activeProfile}`);
+  es.onmessage=e=>{
+    const d=JSON.parse(e.data);
+    if(d.step==='done'){
+      es.close();
+      if(d.song){S.songs.unshift(d.song);} updateCount();
+      if(btn){btn.textContent='✓ 已加入';btn.className='rec-add-btn rec-status-ok';}
+      if(card) card.classList.add('added');
+      toast(`已加入：${d.song?.title||title}`,'ok');
+    }
+    if(d.step==='error'){
+      es.close();
+      if(btn){btn.disabled=false;btn.textContent='＋ 加入';}
+      toast(d.message,'err');
+    }
+  };
+  es.onerror=()=>{
+    es.close();
+    if(btn){btn.disabled=false;btn.textContent='＋ 加入';}
+  };
+}
+
+// ═══════════════════════════════ RATE SONG ═══════════════════════════
+function startRateSong() {
+  if(S.rating) return;
+  if(S.songs.length<3){toast('需要至少 3 首歌曲才能評分','err');return;}
+  const url=document.getElementById('rate-url').value.trim();
+  if(!url){toast('請貼上 YouTube 或 Spotify 網址','err');return;}
+  S.rating=true;
+  const btn=document.getElementById('rate-btn');
+  btn.disabled=true; btn.textContent='評分中…';
+  document.getElementById('rate-result').classList.add('hidden');
+  document.getElementById('rate-prog').classList.remove('hidden');
+  ['rsp-i','rsp-d','rsp-a','rsp-c'].forEach(id=>setStep(id,''));
+  setStep('rsp-i','active');
+  setProg('rate-fill','rate-msg',10,'正在連線…');
+
+  const es=new EventSource(`/api/rate-song?url=${encodeURIComponent(url)}&profile=${S.activeProfile}`);
+  es.onmessage=e=>{
+    const d=JSON.parse(e.data);
+    if(d.step==='info'||d.step==='search') {setProg('rate-fill','rate-msg',d.progress,d.message);}
+    if(d.step==='download')     {setStep('rsp-i','done');setStep('rsp-d','active');
+                                  setProg('rate-fill','rate-msg',d.progress,d.message);}
+    if(d.step==='download_done'){setStep('rsp-d','done');setStep('rsp-a','active');
+                                  setProg('rate-fill','rate-msg',d.progress,d.message);}
+    if(d.step==='analyze')      {setProg('rate-fill','rate-msg',d.progress,d.message);}
+    if(d.step==='compare')      {setStep('rsp-a','done');setStep('rsp-c','active');
+                                  setProg('rate-fill','rate-msg',d.progress,d.message);}
+    if(d.step==='done'){
+      setStep('rsp-c','done'); setProg('rate-fill','rate-msg',100,'評分完成');
+      es.close(); S.rating=false; btn.disabled=false; btn.textContent='開始評分';
+      setTimeout(()=>{
+        document.getElementById('rate-prog').classList.add('hidden');
+        renderRateResult(d);
+      },500);
+    }
+    if(d.step==='error'){
+      es.close(); S.rating=false;
+      btn.disabled=false; btn.textContent='開始評分';
+      setStep('rsp-i','err'); toast(d.message,'err');
+    }
+  };
+  es.onerror=()=>{
+    es.close(); S.rating=false;
+    btn.disabled=false; btn.textContent='開始評分';
+    toast('連線中斷','err');
+  };
+}
+function renderRateResult(d) {
+  document.getElementById('rate-result').classList.remove('hidden');
+  document.getElementById('r-thumb').src=d.thumbnail||'';
+  document.getElementById('r-title').textContent=d.title;
+  const circ=2*Math.PI*36;
+  const fill=document.getElementById('mc-fill');
+  fill.style.strokeDashoffset=circ;
+  setTimeout(()=>fill.style.strokeDashoffset=circ-(d.match_score/100)*circ,60);
+  fill.style.stroke=scoreCol(d.match_score);
+  document.getElementById('mc-num').textContent=Math.round(d.match_score);
+  const g=document.getElementById('mc-grade');
+  g.textContent=matchGrade(d.match_score); g.style.color=scoreCol(d.match_score);
+
+  document.getElementById('r-devs').innerHTML=(d.deviations||[]).map(dev=>{
+    const badge=dev.deviation<15?'bdg-ok':dev.direction==='偏高'?'bdg-h':'bdg-l';
+    const btxt=dev.deviation<15?'匹配':dev.direction;
+    return `
+    <div class="dev-row">
+      <span class="dev-lbl">${esc(dev.label)}</span>
+      <div class="dev-bars">
+        <div class="dev-br">
+          <span style="width:22px">本曲</span>
+          <div class="dev-bt"><div class="dev-bf bf-s" style="width:${dev.song_value}%"></div></div>
+          <span style="width:22px;text-align:right">${Math.round(dev.song_value)}</span>
+        </div>
+        <div class="dev-br">
+          <span style="width:22px">偏好</span>
+          <div class="dev-bt"><div class="dev-bf bf-p" style="width:${dev.profile_value}%"></div></div>
+          <span style="width:22px;text-align:right">${Math.round(dev.profile_value)}</span>
+        </div>
+      </div>
+      <span class="dev-bdg ${badge}">${btxt}</span>
+    </div>`;
+  }).join('');
+
+  const sims=document.getElementById('r-sims');
+  sims.innerHTML=(d.similar_songs||[]).length===0
+    ? '<p style="color:var(--muted);font-size:12px">（歌單中無相似歌曲）</p>'
+    : d.similar_songs.map(s=>`
+      <div class="sim-item">
+        ${s.thumbnail
+          ? `<img class="sim-thumb" src="${esc(s.thumbnail)}" alt="" loading="lazy">`
+          : `<div class="sim-thumb" style="display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--dim)">🎵</div>`}
+        <span class="sim-title">${esc(s.title)}</span>
+        <span class="sim-score">${s.similarity}%</span>
+      </div>`).join('');
+}
+
+// ═══════════════════════════════ MINI PLAYER ══════════════════════════
+function openMiniPlayer(vid, title) {
+  const ytUrl = `https://music.youtube.com/watch?v=${vid}`;
+  document.getElementById('mp-title').textContent = title || '試聽';
+  document.getElementById('mp-yt-btn').href = ytUrl;
+  document.getElementById('mp-err-link').href = ytUrl;
+  // Reset to iframe state (clear any previous error)
+  document.getElementById('mp-iframe').style.display = 'block';
+  document.getElementById('mp-err').style.display    = 'none';
+  // enablejsapi=1 so YouTube sends postMessage error events
+  document.getElementById('mp-iframe').src =
+    `https://www.youtube.com/embed/${vid}?autoplay=1&rel=0&enablejsapi=1`;
+  document.getElementById('mini-player').classList.remove('hidden');
+}
+function closeMiniPlayer() {
+  document.getElementById('mp-iframe').src = '';
+  document.getElementById('mini-player').classList.add('hidden');
+}
+// YouTube IFrame API error via postMessage
+// Error code 100=not found, 101/150=embedding disabled by uploader
+window.addEventListener('message', function(ev) {
+  try {
+    if (!ev.origin.includes('youtube.com')) return;
+    const d = JSON.parse(ev.data);
+    if (d.event === 'onError') {
+      document.getElementById('mp-iframe').style.display = 'none';
+      document.getElementById('mp-err').style.display    = 'flex';
+    }
+  } catch(e) {}
+});
+
+// ═══════════════════════════════ HELPERS ═══════════════════════════════
+function setStep(id,state) {
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.classList.remove('active','done','err');
+  if(state) el.classList.add(state);
+}
+function setProg(fillId, msgId, pct, msg) {
+  const f=document.getElementById(fillId);
+  if(f) f.style.width=pct+'%';
+  const m=document.getElementById(msgId);
+  if(m) m.textContent=msg;
+}
+function scoreCol(s){
+  return s>=75?'var(--ok)':s>=50?'var(--warn)':'var(--err)';
+}
+function consGrade(s){
+  if(s>=85) return '非常一致 ✦';
+  if(s>=70) return '偏好明確';
+  if(s>=50) return '風格多元';
+  if(s>=30) return '喜好廣泛';
+  return '極度多元';
+}
+function matchGrade(s){
+  if(s>=85) return '極度契合 ♥';
+  if(s>=70) return '高度匹配';
+  if(s>=55) return '相當符合';
+  if(s>=40) return '部分契合';
+  return '差異較大';
+}
+function fmtDur(sec){
+  const m=Math.floor(sec/60),s=String(Math.round(sec%60)).padStart(2,'0');
+  return `${m}:${s}`;
+}
+function esc(s){
+  return String(s||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+let _tt;
+function toast(msg,type='info'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.className=`toast t-${type==='ok'?'ok':type==='err'?'err':'info'} show`;
+  clearTimeout(_tt);
+  _tt=setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+// boot
+init();
+</script>
+</body>
+</html>
