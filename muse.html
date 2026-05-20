@@ -42,7 +42,7 @@ nav.tabs{display:flex;gap:2px;flex:1;overflow-x:auto}
   min-width:18px;height:18px;padding:0 5px;background:var(--accent);
   color:#fff;font-size:10px;font-weight:700;border-radius:9px;margin-left:4px}
 main{flex:1;overflow-y:auto}
-.tab-content{display:none;padding:26px 20px 60px}
+.tab-content{display:none;padding:26px 20px 100px}
 .tab-content.active{display:block}
 .wrap{max-width:860px;margin:0 auto}
 h2{font-size:19px;font-weight:700;margin-bottom:20px;letter-spacing:-.3px}
@@ -203,36 +203,41 @@ h3{font-size:14px;font-weight:600;margin-bottom:12px}
   display:flex;align-items:center;justify-content:center;transition:var(--tr)}
 .pl-play-btn:hover{background:var(--a2-glow);border-color:var(--a2)}
 
-/* mini player */
-#mini-player{position:fixed;bottom:70px;right:22px;width:320px;
-  background:var(--bg-card);border:1px solid var(--border-b);
-  border-radius:var(--r);overflow:hidden;z-index:500;
-  box-shadow:0 8px 40px rgba(0,0,0,.7);
-  transition:opacity .2s ease,transform .2s ease}
-#mini-player.hidden{opacity:0;pointer-events:none;transform:translateY(8px)}
-.mp-bar{display:flex;align-items:center;gap:7px;padding:8px 10px;
-  background:var(--bg-hover);border-bottom:1px solid var(--border)}
-.mp-icon{font-size:12px;flex-shrink:0;color:var(--a2)}
-.mp-title{flex:1;font-size:12px;font-weight:500;color:var(--text);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mp-yt-btn{flex-shrink:0;font-size:13px;color:var(--a2);opacity:.75;
-  text-decoration:none;line-height:1;transition:opacity .15s}
-.mp-yt-btn:hover{opacity:1}
+/* ── mini player (bottom bar) ─────────────────────────────── */
+#mini-player{
+  position:fixed;bottom:0;left:0;right:0;height:68px;
+  background:rgba(13,13,30,.97);backdrop-filter:blur(16px);
+  border-top:1px solid var(--border-b);z-index:500;
+  display:flex;align-items:center;gap:12px;padding:0 16px;
+  transition:transform .22s ease,opacity .22s ease}
+#mini-player.hidden{transform:translateY(100%);opacity:0;pointer-events:none}
+.mp-thumb{width:44px;height:44px;border-radius:6px;object-fit:cover;
+  flex-shrink:0;background:var(--border)}
+.mp-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.mp-title{font-size:12.5px;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.mp-row{display:flex;align-items:center;gap:8px}
+.mp-play-btn{width:30px;height:30px;border-radius:50%;border:none;
+  background:var(--a2);color:#fff;font-size:12px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:var(--tr)}
+.mp-play-btn:hover{background:#0891b2;transform:scale(1.08)}
+.mp-play-btn:disabled{background:var(--border-b);cursor:default;transform:none}
+.mp-prog-wrap{flex:1;height:4px;background:var(--border);border-radius:2px;
+  cursor:pointer;position:relative;min-width:60px}
+.mp-prog-wrap:hover{height:6px;margin:-1px 0}
+.mp-prog-bar{height:100%;background:var(--a2);border-radius:2px;
+  width:0%;transition:width .25s linear;pointer-events:none}
+.mp-time{font-size:10px;color:var(--muted);white-space:nowrap;flex-shrink:0}
+.mp-vol{-webkit-appearance:none;appearance:none;width:64px;height:3px;
+  background:var(--border);border-radius:2px;outline:none;cursor:pointer;flex-shrink:0}
+.mp-vol::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;
+  border-radius:50%;background:var(--muted);cursor:pointer}
+.mp-vol:hover::-webkit-slider-thumb{background:var(--a2)}
+.mp-status{font-size:11px;color:var(--muted);flex-shrink:0}
 .mp-close{border:none;background:transparent;color:var(--muted);
-  cursor:pointer;font-size:16px;padding:0;line-height:1;flex-shrink:0}
+  cursor:pointer;font-size:18px;padding:0;line-height:1;flex-shrink:0;margin-left:4px}
 .mp-close:hover{color:var(--err)}
-#mp-wrap{position:relative;aspect-ratio:16/9}
-#mp-iframe{width:100%;height:100%;border:none;display:block}
-#mp-err{display:none;position:absolute;inset:0;flex-direction:column;
-  align-items:center;justify-content:center;gap:10px;
-  background:var(--bg-card);text-align:center;padding:16px}
-.mp-err-icon{font-size:32px;opacity:.3}
-.mp-err-txt{font-size:12px;color:var(--muted)}
-.mp-err-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;
-  border-radius:var(--rs);font-size:12px;font-weight:600;color:var(--a2);
-  border:1px solid rgba(6,182,212,.35);background:rgba(6,182,212,.1);
-  text-decoration:none;transition:var(--tr)}
-.mp-err-btn:hover{background:rgba(6,182,212,.2)}
 
 /* empty / locked */
 .empty{text-align:center;padding:56px 20px;color:var(--muted)}
@@ -903,6 +908,7 @@ h3{font-size:14px;font-weight:600;margin-bottom:12px}
       <img id="r-thumb" class="rate-thumb" src="" alt="">
       <div class="rate-title-a">
         <div id="r-title" class="rate-title"></div>
+        <div id="r-play-wrap"></div>
         <div class="mc-wrap">
           <svg class="mc-svg" viewBox="0 0 90 90">
             <circle class="mc-track" cx="45" cy="45" r="36"/>
@@ -968,25 +974,28 @@ h3{font-size:14px;font-weight:600;margin-bottom:12px}
 
 </main>
 </div>
-<!-- mini player (floating) -->
+<!-- mini player (bottom bar) -->
 <div id="mini-player" class="hidden">
-  <div class="mp-bar">
-    <span class="mp-icon">▶</span>
-    <span class="mp-title" id="mp-title">試聽</span>
-    <a id="mp-yt-btn" class="mp-yt-btn" href="#" target="_blank" rel="noopener"
-       title="在 YouTube Music 開啟">🎵</a>
-    <button class="mp-close" onclick="closeMiniPlayer()" title="關閉">✕</button>
-  </div>
-  <div id="mp-wrap">
-    <iframe id="mp-iframe" allowfullscreen allow="autoplay; encrypted-media"></iframe>
-    <div id="mp-err">
-      <div class="mp-err-icon">🚫</div>
-      <div class="mp-err-txt">此影片禁止嵌入播放</div>
-      <a id="mp-err-link" class="mp-err-btn" href="#" target="_blank" rel="noopener">
-        ▶ 在 YouTube Music 開啟
-      </a>
+  <img id="mp-thumb" class="mp-thumb" src="" alt="">
+  <div class="mp-info">
+    <div class="mp-title" id="mp-title">試聽</div>
+    <div class="mp-row">
+      <button class="mp-play-btn" id="mp-play-btn" onclick="toggleAudioPlay()" disabled>▶</button>
+      <div class="mp-prog-wrap" id="mp-prog-wrap" onclick="seekAudio(event)">
+        <div class="mp-prog-bar" id="mp-prog-bar"></div>
+      </div>
+      <span class="mp-time" id="mp-time">0:00</span>
+      <input type="range" class="mp-vol" id="mp-vol" min="0" max="1" step="0.02"
+             value="1" oninput="setMpVolume(this.value)" title="音量">
     </div>
   </div>
+  <span class="mp-status" id="mp-status">載入中…</span>
+  <button class="mp-close" onclick="closeMiniPlayer()" title="關閉">✕</button>
+  <audio id="mp-audio"
+         oncanplay="onMpCanPlay()"
+         ontimeupdate="onMpTimeUpdate()"
+         onended="onMpEnded()"
+         onerror="onMpError()"></audio>
 </div>
 
 <div id="toast" class="toast"></div>
@@ -1316,7 +1325,7 @@ function showPreview(info) {
 }
 function togglePreview() {
   if(!S.fetchedInfo || S.fetchedIsSpotify) return;
-  openMiniPlayer(S.fetchedInfo.id, S.fetchedInfo.title);
+  openMiniPlayer(S.fetchedInfo.id, S.fetchedInfo.title, S.fetchedInfo.thumbnail);
 }
 function startAddSong() {
   if(S.adding) return;
@@ -1524,7 +1533,7 @@ function renderPlList(title, items, type) {
         <img class="pl-thumb" src="${esc(v.thumbnail)}" alt="" loading="lazy">
         <span class="pl-title">${esc(v.title)}</span>
         <button class="pl-play-btn" title="試聽"
-          onclick="event.preventDefault();event.stopPropagation();openMiniPlayer('${esc(v.id)}','${esc(v.title)}')">▶</button>
+          onclick="event.preventDefault();event.stopPropagation();openMiniPlayer('${esc(v.id)}','${esc(v.title)}','${esc(v.thumbnail||'')}')">▶</button>
         <span class="pl-dur">${v.duration?fmtDur(v.duration):''}</span>
       </label>`).join('');
   }
@@ -1659,7 +1668,7 @@ function renderPlaylist() {
     const ytId = s.youtube_id && !s.youtube_id.startsWith('local_') ? s.youtube_id : null;
     const playBtn = ytId
       ? `<button class="sc-play" title="試聽"
-           onclick="openMiniPlayer('${esc(ytId)}','${esc(s.title)}')">▶</button>`
+           onclick="openMiniPlayer('${esc(ytId)}','${esc(s.title)}','${esc(s.thumbnail||'')}')">▶</button>`
       : '';
     return `
     <div class="sc">
@@ -2118,7 +2127,7 @@ function recCardHtml(v, order) {
     <div class="rec-thumb-wrap">
       <img class="rec-thumb" src="${esc(v.thumbnail)}" alt="" loading="lazy">
       <button class="rec-play" title="試聽"
-              onclick="openMiniPlayer('${esc(v.id)}','${esc(v.title)}')">▶</button>
+              onclick="openMiniPlayer('${esc(v.id)}','${esc(v.title)}','${esc(v.thumbnail||'')}')">▶</button>
     </div>
     <div class="rec-body">
       <div class="rec-title">${esc(v.title)}</div>
@@ -2276,6 +2285,14 @@ function renderRateResult(d) {
   document.getElementById('rate-result').classList.remove('hidden');
   document.getElementById('r-thumb').src=d.thumbnail||'';
   document.getElementById('r-title').textContent=d.title;
+  // Play button for the rated song itself
+  const rPlayWrap = document.getElementById('r-play-wrap');
+  if(rPlayWrap) {
+    if(d.youtube_id) {
+      rPlayWrap.innerHTML=`<button class="btn btn-g btn-sm" style="margin-top:8px"
+        onclick="openMiniPlayer('${esc(d.youtube_id)}','${esc(d.title)}','${esc(d.thumbnail||'')}')">▶ 試聽</button>`;
+    } else { rPlayWrap.innerHTML=''; }
+  }
   const circ=2*Math.PI*36;
   const fill=document.getElementById('mc-fill');
   fill.style.strokeDashoffset=circ;
@@ -2310,46 +2327,113 @@ function renderRateResult(d) {
   const sims=document.getElementById('r-sims');
   sims.innerHTML=(d.similar_songs||[]).length===0
     ? '<p style="color:var(--muted);font-size:12px">（歌單中無相似歌曲）</p>'
-    : d.similar_songs.map(s=>`
+    : d.similar_songs.map(s=>{
+      const sid = s.youtube_id && !s.youtube_id.startsWith('local_') ? s.youtube_id : null;
+      return `
       <div class="sim-item">
         ${s.thumbnail
           ? `<img class="sim-thumb" src="${esc(s.thumbnail)}" alt="" loading="lazy">`
           : `<div class="sim-thumb" style="display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--dim)">🎵</div>`}
         <span class="sim-title">${esc(s.title)}</span>
         <span class="sim-score">${s.similarity}%</span>
-      </div>`).join('');
+        ${sid ? `<button class="pl-play-btn" title="試聽"
+          onclick="openMiniPlayer('${esc(sid)}','${esc(s.title)}','${esc(s.thumbnail||'')}')">▶</button>` : ''}
+      </div>`;
+    }).join('');
 }
 
 // ═══════════════════════════════ MINI PLAYER ══════════════════════════
-function openMiniPlayer(vid, title) {
-  const ytUrl = `https://music.youtube.com/watch?v=${vid}`;
+let _mpCurrentVid = null;
+
+async function openMiniPlayer(vid, title, thumb) {
+  if (!vid) return;
+  _mpCurrentVid = vid;
+
+  // Update UI immediately
   document.getElementById('mp-title').textContent = title || '試聽';
-  document.getElementById('mp-yt-btn').href = ytUrl;
-  document.getElementById('mp-err-link').href = ytUrl;
-  // Reset to iframe state (clear any previous error)
-  document.getElementById('mp-iframe').style.display = 'block';
-  document.getElementById('mp-err').style.display    = 'none';
-  // enablejsapi=1 so YouTube sends postMessage error events
-  document.getElementById('mp-iframe').src =
-    `https://www.youtube.com/embed/${vid}?autoplay=1&rel=0&enablejsapi=1`;
+  document.getElementById('mp-thumb').src = thumb || '';
+  document.getElementById('mp-thumb').style.display = thumb ? '' : 'none';
+  document.getElementById('mp-status').textContent = '載入中…';
+  document.getElementById('mp-play-btn').disabled = true;
+  document.getElementById('mp-play-btn').textContent = '▶';
+  document.getElementById('mp-prog-bar').style.width = '0%';
+  document.getElementById('mp-time').textContent = '0:00';
   document.getElementById('mini-player').classList.remove('hidden');
+
+  // Stop any current audio
+  const audio = document.getElementById('mp-audio');
+  audio.pause();
+  audio.src = '';
+
+  try {
+    const res = await fetch(`/api/stream-url?id=${encodeURIComponent(vid)}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    // Guard: user may have switched song while loading
+    if (_mpCurrentVid !== vid) return;
+    audio.src = data.url;
+    audio.volume = parseFloat(document.getElementById('mp-vol').value);
+    audio.play().catch(() => {});
+  } catch(e) {
+    if (_mpCurrentVid !== vid) return;
+    document.getElementById('mp-status').textContent = '播放失敗';
+    document.getElementById('mp-play-btn').disabled = false;
+  }
 }
+
 function closeMiniPlayer() {
-  document.getElementById('mp-iframe').src = '';
+  _mpCurrentVid = null;
+  const audio = document.getElementById('mp-audio');
+  audio.pause();
+  audio.src = '';
   document.getElementById('mini-player').classList.add('hidden');
 }
-// YouTube IFrame API error via postMessage
-// Error code 100=not found, 101/150=embedding disabled by uploader
-window.addEventListener('message', function(ev) {
-  try {
-    if (!ev.origin.includes('youtube.com')) return;
-    const d = JSON.parse(ev.data);
-    if (d.event === 'onError') {
-      document.getElementById('mp-iframe').style.display = 'none';
-      document.getElementById('mp-err').style.display    = 'flex';
-    }
-  } catch(e) {}
-});
+
+function toggleAudioPlay() {
+  const audio = document.getElementById('mp-audio');
+  if (!audio.src) return;
+  if (audio.paused) { audio.play(); } else { audio.pause(); }
+  document.getElementById('mp-play-btn').textContent = audio.paused ? '▶' : '⏸';
+}
+
+function onMpCanPlay() {
+  document.getElementById('mp-status').textContent = '';
+  document.getElementById('mp-play-btn').disabled = false;
+  document.getElementById('mp-play-btn').textContent = '⏸';
+}
+
+function onMpTimeUpdate() {
+  const audio = document.getElementById('mp-audio');
+  if (!audio.duration) return;
+  const pct = (audio.currentTime / audio.duration) * 100;
+  document.getElementById('mp-prog-bar').style.width = pct + '%';
+  document.getElementById('mp-time').textContent =
+    fmtDur(Math.floor(audio.currentTime)) +
+    ' / ' + fmtDur(Math.floor(audio.duration));
+}
+
+function onMpEnded() {
+  document.getElementById('mp-play-btn').textContent = '▶';
+  document.getElementById('mp-prog-bar').style.width = '100%';
+}
+
+function onMpError() {
+  document.getElementById('mp-status').textContent = '播放失敗';
+  document.getElementById('mp-play-btn').textContent = '▶';
+  document.getElementById('mp-play-btn').disabled = false;
+}
+
+function seekAudio(e) {
+  const audio = document.getElementById('mp-audio');
+  if (!audio.duration) return;
+  const rect = document.getElementById('mp-prog-wrap').getBoundingClientRect();
+  const pct  = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  audio.currentTime = pct * audio.duration;
+}
+
+function setMpVolume(v) {
+  document.getElementById('mp-audio').volume = parseFloat(v);
+}
 
 // ═══════════════════════════════ HELPERS ═══════════════════════════════
 function setStep(id,state) {

@@ -1869,6 +1869,44 @@ def api_profile_rename(pid):
     conn.commit(); conn.close()
     return jsonify({"success": True, "id": pid, "name": name})
 
+@app.route("/api/stream-url")
+def api_stream_url():
+    """Return a direct audio stream URL for a YouTube video ID (no download)."""
+    vid = request.args.get("id", "").strip()
+    if not vid:
+        return jsonify({"error": "missing id"}), 400
+    try:
+        ydl_opts = {
+            "quiet": True,
+            "no_warnings": True,
+            # m4a (AAC) works in all browsers; webm (Opus) works in Chrome/Firefox
+            "format": "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best",
+        }
+        yt_url = f"https://www.youtube.com/watch?v={vid}"
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(yt_url, download=False)
+
+        # yt-dlp returns the resolved URL in info["url"] when a single format
+        # is selected, or in info["formats"][...]["url"] otherwise.
+        audio_url = info.get("url", "")
+        if not audio_url:
+            for fmt in sorted(
+                info.get("formats", []),
+                key=lambda f: (f.get("abr") or 0),
+                reverse=True,
+            ):
+                if fmt.get("acodec") not in (None, "none") and fmt.get("url"):
+                    audio_url = fmt["url"]
+                    break
+
+        if not audio_url:
+            return jsonify({"error": "no audio url found"}), 500
+
+        return jsonify({"url": audio_url})
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
 @app.route("/api/songs")
 def api_songs():
     profile_id = int(request.args.get("profile", 1))
