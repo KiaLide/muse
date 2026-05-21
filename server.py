@@ -328,14 +328,20 @@ def _is_single(e: dict) -> bool:
         return False
     return not any(w in title for w in _SKIP_WORDS)
 
-def search_youtube(query: str, n: int = 3) -> list:
+def search_youtube(query: str, n: int = 3, skip: int = 0) -> list:
+    """Search YouTube and return up to `n` results, skipping the first `skip`."""
+    fetch_count = (n + skip) * 4
     opts = {"quiet": True, "no_warnings": True, "extract_flat": True}
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
-            info = ydl.extract_info(f"ytsearch{n * 4}:{query}", download=False)
+            info = ydl.extract_info(f"ytsearch{fetch_count}:{query}", download=False)
         results = []
+        skipped = 0
         for e in (info.get("entries") or []):
             if not e or not e.get("id") or not _is_single(e):
+                continue
+            if skipped < skip:
+                skipped += 1
                 continue
             vid = e["id"]
             results.append({
@@ -1349,19 +1355,24 @@ def search_artist_gender_web(artist_name: str) -> str:
         return "unknown"
 
 
-def fetch_youtube_radio(seed_vid: str, n: int = 40) -> list:
-    """Fetch YouTube Radio/Mix candidates seeded from `seed_vid`."""
+def fetch_youtube_radio(seed_vid: str, n: int = 40, skip: int = 0) -> list:
+    """Fetch YouTube Radio/Mix candidates seeded from `seed_vid`.
+    `skip` = skip this many entries from the start (for randomisation across runs)."""
     url  = f"https://www.youtube.com/watch?v={seed_vid}&list=RD{seed_vid}"
     opts = {"quiet": True, "no_warnings": True, "extract_flat": True,
-            "playlistend": n + 10}
+            "playlistend": n + skip + 15}
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=False)
         results = []
+        skipped = 0
         for e in (info.get("entries") or []):
             if not e or not e.get("id") or e["id"] == seed_vid:
                 continue
             if not _is_single(e):
+                continue
+            if skipped < skip:
+                skipped += 1
                 continue
             year = str(e.get("release_year") or "")
             if not year:
@@ -2259,14 +2270,26 @@ def api_recommend_audio():
 
         profile_vec = np.mean(lib_vecs, axis=0).astype(np.float32)
 
-        # ── 2. Pick seed videos (top 5 nearest to centroid) ───────────────
+        # ── 2. Pick seed videos — randomised from a wider pool ────────────
         sims_lib = sorted(
             [(float(np.dot(v, profile_vec) /
                     (np.linalg.norm(v) * np.linalg.norm(profile_vec) + 1e-9)), vid)
              for v, vid in zip(lib_vecs, lib_vids)],
             reverse=True)
-        seed_vids = [vid for _, vid in sims_lib[:5] if vid]
-        random.shuffle(seed_vids)
+
+        # Take top 40 % of library (min 10, max 25) as the "good seed" pool
+        pool_size  = max(10, min(25, len(sims_lib) * 2 // 5))
+        top_pool   = [vid for _, vid in sims_lib[:pool_size] if vid]
+
+        # Also throw in a few songs from the rest of the library for wildcard variety
+        outer_pool = [vid for _, vid in sims_lib[pool_size:] if vid]
+        if outer_pool:
+            random.shuffle(outer_pool)
+            top_pool += outer_pool[:3]
+
+        # Randomly sample 6–8 seeds from the combined pool
+        n_seeds  = min(random.randint(6, 8), len(top_pool))
+        seed_vids = random.sample(top_pool, n_seeds)
 
         yield _sse({"type": "status", "message": "蒐集候選歌曲…", "progress": 3})
 
@@ -2275,7 +2298,9 @@ def api_recommend_audio():
         candidates:   list = []
 
         for seed_vid in seed_vids:
-            for c in fetch_youtube_radio(seed_vid, n=40):
+            # Random skip (0–25) so each run starts at a different Radio position
+            radio_skip = random.randint(0, 25)
+            for c in fetch_youtube_radio(seed_vid, n=40, skip=radio_skip):
                 if c["id"] not in candidate_ids and c["id"] not in lib_id_set:
                     candidate_ids.add(c["id"])
                     candidates.append(c)
@@ -2287,11 +2312,17 @@ def api_recommend_audio():
         if include:
             extra_terms = (extra_terms + " " + include).strip()
 
+        # Shuffle all generated queries so different ones are used each run
         supp_queries = build_rec_queries(norm_profile, language, genre, mood, era, voice)
-        for q, _ in supp_queries[:4]:
+        random.shuffle(supp_queries)
+        # Use a random count of queries (4–8, capped to available)
+        n_queries = random.randint(4, min(8, max(4, len(supp_queries))))
+        for q, _ in supp_queries[:n_queries]:
             if extra_terms:
                 q = re.sub(r"\s+", " ", q + " " + extra_terms).strip()
-            for v in search_youtube(q, 10):
+            # Random skip (0–8) so different result pages are sampled each run
+            search_skip = random.randint(0, 8)
+            for v in search_youtube(q, 10, skip=search_skip):
                 if v["id"] not in candidate_ids and v["id"] not in lib_id_set:
                     candidate_ids.add(v["id"])
                     candidates.append({
